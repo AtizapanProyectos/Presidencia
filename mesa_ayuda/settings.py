@@ -105,5 +105,7 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-
-CSRF_TRUSTED_ORIGINS = ['https://*']
+CSRF_TRUSTED_ORIGINS = [
+    'https://presidencia-production.up.railway.app',
+    'https://*.up.railway.app',
+]
