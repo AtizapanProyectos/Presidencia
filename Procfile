@@ -1,0 +1,1 @@
+web: python manage.py collectstatic --noinput && gunicorn mesa_ayuda.wsgi --log-file -
