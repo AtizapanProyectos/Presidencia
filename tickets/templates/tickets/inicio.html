@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Gobierno Digital</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+    <style>
+        :root {
+            /* PALETA REFINADA Y SUAVE */
+            --bg-color: #F8FAFC; 
+            --surface: #FFFFFF;
+            --primary: #1E293B; 
+            --primary-light: #334155; 
+            --gold-accent: #D97706;      
+            
+            --success: #10B981; 
+            --success-light: #ECFDF5; 
+            --success-border: #A7F3D0;
+            
+            --warning: #F59E0B; 
+            --warning-light: #FFFBEB;
+            --danger:  #EF4444; 
+            --danger-light:  #FEF2F2;
+            
+            --text-title: #0F172A; 
+            --text-main: #475569; 
+            --text-muted: #94A3B8;
+            
+            --border-delicate: 1px solid #E2E8F0;
+            --radius-soft: 16px; 
+            --radius-pill: 50px;
+            --shadow-float: 0 15px 30px -5px rgba(0, 0, 0, 0.05);
+            --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.02);
+            --gray-pending: #E2E8F0; 
+            --gray-text: #94A3B8;
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 30px 40px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; color: var(--text-title); margin: 0; }
+        h1 { font-weight: 800; font-size: 1.8rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; }
+        h2 { font-weight: 700; font-size: 1.25rem; margin-bottom: 20px; color: var(--primary); }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; margin-bottom: 30px; border-bottom: 2px solid #E2E8F0; }
+        .panel, .filter-panel { background: var(--surface); border-radius: var(--radius-soft); box-shadow: var(--shadow-card); padding: 30px; margin-bottom: 30px; border: var(--border-delicate); transition: box-shadow 0.4s ease, transform 0.4s ease; }
+        .panel:hover { box-shadow: var(--shadow-float); }
+
+        .kpi-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 25px; margin-bottom: 35px; }
+        .card { background: var(--surface); padding: 30px 20px; border-radius: var(--radius-soft); box-shadow: var(--shadow-card); text-align: center; border: var(--border-delicate); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease; }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--primary); opacity: 0.8; }
+        .card:hover { transform: translateY(-6px); box-shadow: var(--shadow-float); }
+        .card h3 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 10px; }
+        .card .numero { font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 800; color: var(--primary); line-height: 1; margin: 0; }
+        .card-nuevo::before { background: var(--danger); } 
+        .card-proceso::before { background: var(--warning); } 
+        .card-validacion::before { background: #8B5CF6; } 
+        .card-resuelto::before { background: var(--success); }
+        .filter-panel { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
+        .form-group { flex-grow: 1; min-width: 160px; display: flex; flex-direction: column; gap: 8px; }
+        
+        label { font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-control { width: 100%; padding: 12px 18px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-title); background: #F8FAFC; transition: all 0.3s ease; box-sizing: border-box; }
+        .form-control:focus { outline: none; border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(30, 41, 59, 0.08); }
+
+        .btn { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.8rem; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-primary { background: var(--primary); color: var(--surface); }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(30, 41, 59, 0.15); }
+        .btn-danger-outline { background: transparent; border: 1.5px solid var(--danger); color: var(--danger); padding: 10px 24px; }
+        .btn-danger-outline:hover { background: var(--danger-light); transform: translateY(-2px); }
+
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2.5fr; gap: 30px; margin-top: 30px; }
+        #mapa { height: 480px; width: 100%; border-radius: var(--radius-soft); border: var(--border-delicate); box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); z-index: 1; }
+        .chart-container { position: relative; height: 380px; width: 100%; display: flex; justify-content: center; cursor: pointer; padding-top: 15px;}
+
+        table.dataTable { border-collapse: separate !important; border-spacing: 0 10px !important; border: none !important; width: 100% !important; margin-top: 10px !important;}
+        table.dataTable thead th { background: transparent !important; color: var(--text-muted) !important; font-family: 'Montserrat', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 10px 15px !important; border: none !important; }
+        table.dataTable tbody tr { background-color: var(--surface); box-shadow: var(--shadow-card); border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border: 1px solid #E2E8F0; }
+        table.dataTable tbody td { padding: 15px 15px !important; border: none !important; vertical-align: middle; font-size: 0.9rem;}
+        table.dataTable tbody td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; border-left: 4px solid transparent; }
+        table.dataTable tbody td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+        table.dataTable tbody tr:hover { transform: translateY(-2px); box-shadow: var(--shadow-float); }
+        table.dataTable tbody tr:hover td:first-child { border-left: 4px solid var(--primary); }
+        .dt-buttons .dt-button { background: var(--surface) !important; color: var(--primary) !important; border: 1px solid var(--border-delicate) !important; font-family: 'Montserrat', sans-serif !important; font-weight: 600 !important; font-size: 0.8rem !important; border-radius: var(--radius-pill) !important; padding: 10px 24px !important; box-shadow: var(--shadow-card) !important; margin-bottom: 20px !important; }
+        
+        .badge { padding: 6px 14px; border-radius: var(--radius-pill); font-size: 0.7rem; font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; display: inline-block; }
+        .bg-nuevo { background-color: var(--danger-light); color: var(--danger); border: 1px solid #FECACA; }
+        .bg-proceso { background-color: var(--warning-light); color: var(--warning); border: 1px solid #FDE68A; }
+        .bg-resuelto { background-color: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
+        .bg-validacion { background-color: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(8px); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: var(--surface); padding: 45px; border-radius: 24px; max-width: 1200px; width: 95%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.4); position: relative; max-height: 90vh; overflow-y: auto; animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes modalFadeIn { from { transform: translateY(30px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        .btn-cerrar { position: absolute; top: 20px; right: 25px; background: #F1F5F9; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; z-index: 999;}
+        .btn-cerrar:hover { background: var(--danger-light); color: var(--danger); transform: rotate(90deg); }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+
+        /* =================================================================
+           🌟 TIMELINE EXACTO Y REFINADO (SIN EMOJIS, GRÁFICO REAL)
+           ================================================================= */
+        .illus-tracker { display: flex; justify-content: space-between; position: relative; margin: 30px 0 50px 0; padding: 0 20px; }
+        .illus-line-bg { position: absolute; top: 25px; left: 60px; right: 60px; height: 4px; background-image: linear-gradient(to right, var(--gray-pending) 50%, transparent 50%); background-size: 14px 4px; background-repeat: repeat-x; z-index: 1; }
+        
+        .illus-line-fill { position: absolute; top: 25px; left: 60px; height: 4px; background-color: var(--primary); z-index: 2; transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1); width: 0%; box-shadow: 0 2px 8px rgba(30, 41, 59, 0.3); }
+        
+        .illus-node { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; width: 110px; text-align: center; }
+        .illus-figure-box { width: 50px; height: 50px; border-radius: 14px; display: flex; justify-content: center; align-items: center; transition: all 0.6s ease; background: #FFFFFF; border: 2px solid var(--gray-pending); padding: 8px; box-sizing: border-box;}
+        .illus-figure-box svg { width: 100%; height: 100%; fill: var(--gray-text); transition: all 0.6s ease; }
+        
+        .illus-node.completed .illus-figure-box { background: var(--primary); border-color: var(--primary); box-shadow: 0 8px 15px rgba(30, 41, 59, 0.15); }
+        .illus-node.completed .illus-figure-box svg { fill: #FFFFFF; }
+        .illus-node.completed .illus-label { color: var(--primary); font-weight: 800; }
+        
+        /* NODO FINALIZADO AL 100% (VERDE) */
+        .illus-node.finalizado .illus-figure-box { background: var(--success); border-color: var(--success); box-shadow: 0 4px 10px rgba(21, 128, 61, 0.2); }
+        .illus-node.finalizado .illus-figure-box svg { fill: #FFFFFF; }
+        .illus-node.finalizado .illus-label { color: var(--success); font-weight: 800; }
+
+        .illus-node.active .illus-figure-box { border-color: var(--gold-accent); border-width: 3px; box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.1); background: #FFFBEB;}
+        .illus-node.active .illus-figure-box svg { fill: var(--gold-accent); }
+        .illus-node.active .illus-label { color: var(--text-title); font-weight: 700; }
+        
+        .illus-node.pending .illus-label { color: var(--gray-text); font-weight: 500; }
+        .illus-label { font-size: 0.75rem; margin-top: 15px; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Montserrat', sans-serif; transition: color 0.3s; }
+        .illus-sublabel { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; line-height: 1.3; font-weight: 500; }
+
+        /* =================================================================
+           🌟 DIAGRAMA VERTICAL DE TAREAS Y NOTAS (ESTILO IMAGEN)
+           ================================================================= */
+        .task-list { position: relative; margin-top: 20px; padding-bottom: 20px;}
+        .task-step { display: flex; gap: 20px; margin-bottom: 30px; position: relative; }
+        .task-step:not(:last-child)::before { content: ''; position: absolute; left: 24px; top: 50px; bottom: -35px; width: 0; border-left: 2px dashed #CBD5E1; z-index: 0; }
+        
+        .task-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; font-family: 'Montserrat', sans-serif; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.3s ease;}
+        .task-circle.completed { background: var(--success); color: white; border: none; }
+        .task-circle.pending { background: #F8FAFC; color: var(--gray-text); border: 2px solid var(--gray-pending); }
+        
+        .task-card { flex-grow: 1; padding: 22px 25px; border-radius: 14px; box-shadow: var(--shadow-card); border: 1px solid transparent; transition: all 0.3s ease; }
+        .task-card.completed { background: var(--success-light); border-color: var(--success-border); }
+        .task-card.completed strong { color: var(--success); font-size: 1rem; display: block; margin-bottom: 8px; text-decoration: line-through; font-family: 'Montserrat', sans-serif; font-weight: 700;}
+        .task-card.pending { background: #FFFFFF; border-color: #E2E8F0; }
+        .task-card.pending strong { color: var(--text-title); font-size: 1rem; display: block; margin-bottom: 8px; font-family: 'Montserrat', sans-serif; font-weight: 600;}
+        
+        .ejecutor-text { font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 12px; }
+        
+        .btn-pill { background: var(--success); color: white; border-radius: 50px; font-size: 0.75rem; padding: 8px 18px; font-weight: 700; border: none; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; letter-spacing: 0.5px; transition: transform 0.2s, box-shadow 0.2s;}
+        .btn-pill:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+
+        /* =================================================================
+           🌟 COLORES DE FILAS EN LA TABLA PRINCIPAL
+           ================================================================= */
+        .tr-nuevo td:first-child { border-left: 6px solid var(--danger) !important; }
+        .tr-en-proceso td:first-child { border-left: 6px solid var(--warning) !important; }
+        .tr-en-validacion td:first-child { border-left: 6px solid #8B5CF6 !important; background: linear-gradient(90deg, #F5F3FF 0%, transparent 5%); }
+        .tr-resuelto td:first-child { border-left: 6px solid var(--success) !important; }
+
+        /* Las notas refinadas debajo de la tarea */
+        .task-note-inline { 
+            background: linear-gradient(145deg, #FFFFFF, #F8FAFC); 
+            border-left: 4px solid var(--gold-accent); 
+            padding: 16px 20px; 
+            margin-top: 20px; 
+            border-radius: 0 12px 12px 0; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            border-top: 1px solid #F1F5F9;
+            border-right: 1px solid #F1F5F9;
+            border-bottom: 1px solid #F1F5F9;
+        }
+        .task-note-inline .note-title { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+        .task-note-inline .note-text { font-size: 0.9rem; color: var(--text-main); font-style: italic; line-height: 1.5; margin: 0; font-weight: 500;}
+
+    </style>
+</head>
+<body>
+    <form style="display:none;" id="form-token-global">{% csrf_token %}</form>
+
+    <div class="top-bar">
+        <h1> Panel de Control - Institucional</h1>
+        <div style="display: flex; gap:15px;">
+            <a href="{% url 'crear_ticket' %}" class="btn btn-primary">+ Nuevo Proceso</a>
+            <a href="{% url 'salir' %}" class="btn btn-danger-outline"> Salir</a>
+        </div>
+    </div>
+
+    <form method="GET" action="{% url 'inicio' %}" class="filter-panel panel">
+        <div class="form-group" style="flex-grow: 2;">
+            <label>Búsqueda Inteligente</label>
+            <input type="text" name="q" value="{{ f_q }}" class="form-control" placeholder="Folio, solicitante, palabras clave...">
+        </div>
+        <div class="form-group">
+            <label>Desde</label>
+            <input type="date" name="fecha_inicio" value="{{ f_fecha_inicio }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Hasta</label>
+            <input type="date" name="fecha_fin" value="{{ f_fecha_fin }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Dirección Responsable</label>
+            <select name="direccion_id" class="form-control">
+                <option value="">-- Toda Dependencia --</option>
+                {% for dir in direcciones %}
+                    <option value="{{ dir.id }}" {% if dir.id == f_direccion_id %}selected{% endif %}>{{ dir.nombre_direccion }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Zonificación</label>
+            <select name="colonia_id" class="form-control">
+                <option value="">-- Todo el territorio --</option>
+                {% for col in colonias %}
+                    <option value="{{ col.id }}" {% if col.id == f_colonia_id %}selected{% endif %}>{{ col.nombre_colonia }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:15px; min-width:auto;">
+            <button type="submit" class="btn btn-primary"> Aplicar</button>
+            <a href="{% url 'inicio' %}" class="btn btn-danger-outline" style="border:none;">✖ Limpiar</a>
+        </div>
+    </form>
+
+    <div class="kpi-cards">
+        <div class="card card-total" onclick="filtrarMapa('Todos')">
+            <h3>Histórico General</h3>
+            <p class="numero" id="kpi-total">{{ total_tickets }}</p>
+        </div>
+        <div class="card card-nuevo" onclick="filtrarMapa('Nuevo')">
+            <h3>Nuevos</h3>
+            <p class="numero" id="kpi-nuevos">{{ tickets_nuevos }}</p>
+        </div>
+        <div class="card card-proceso" onclick="filtrarMapa('En Proceso')">
+            <h3>En Operación</h3>
+            <p class="numero" id="kpi-proceso">{{ tickets_proceso }}</p>
+        </div>
+        <div class="card card-validacion" onclick="filtrarMapa('En Validación')">
+            <h3>Por Validar</h3>
+            <p class="numero" id="kpi-validacion">{{ tickets_validacion|default:"0" }}</p>
+        </div>
+        <div class="card card-resuelto" onclick="filtrarMapa('Resuelto')">
+            <h3>Procesos Cerrados</h3>
+            <p class="numero" id="kpi-resueltos">{{ tickets_resueltos }}</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="panel">
+            <h2> Distribución por Dependencia <br><span style="font-size:0.65em; color:var(--text-muted); font-weight:normal; text-transform:none;">(Seleccione un área para filtrar el mapa)</span></h2>
+            <div class="chart-container"><canvas id="graficaDirecciones"></canvas></div>
+        </div>
+        <div class="panel">
+            <h2> Visor Geográfico Táctico</h2>
+            <p id="mapa-titulo" style="font-size: 0.75rem; color: var(--text-muted); margin-top:-10px; font-weight:700; text-transform:uppercase;">Mostrando: Todos los registros</p>
+            <div id="mapa"></div>
+        </div>
+    </div>
+
+    <div class="panel" style="overflow-x: auto;">
+        <h2> Matriz Operativa (Auditoría)</h2>
+        <table id="tabla-tickets" class="display" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Folio</th><th>Fecha</th><th>Área</th><th>Asunto</th><th>Estatus</th>
+                    <th>Director a Cargo</th><th>Sub / Coord</th>
+                    <th>Ciudadano</th><th>Colonia</th><th>Avance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in ultimos_tickets %}
+                <tr class="fila-ticket tr-{{ ticket.status|slugify }}" onclick="abrirDetalleTicket('{{ ticket.folio }}')">
+                    <td><strong style="color: var(--primary);">#{{ ticket.folio }}</strong></td>
+                    <td>{{ ticket.fecha|date:"d/m/Y" }}</td>
+                    <td><span style="background: #F1F5F9; padding: 6px 10px; border-radius: 8px; font-size: 0.8em; font-weight: 700; color: var(--primary-light);">{{ ticket.direccion.nombre_direccion|default:"N/A" }}</span></td>
+                    <td style="font-weight: 600; color: var(--text-title);">{{ ticket.asunto }}</td>
+                    <td><span class="badge {% if ticket.status == 'Nuevo' %}bg-nuevo{% elif ticket.status == 'En Proceso' %}bg-proceso{% elif ticket.status == 'En Validación' %}bg-validacion{% else %}bg-resuelto{% endif %}">{{ ticket.status }}</span></td>
+                    <td><span style="font-size: 0.85em; font-weight: 700; color: var(--text-muted);">{{ ticket.director_asignado.username|default:"-" }}</span></td>
+                    <td><span style="font-size: 0.85em; font-weight: 600; color: var(--text-muted);">{{ ticket.subdirector_asignado.username|default:"-" }} / {{ ticket.coordinador_asignado.username|default:"-" }}</span></td>
+                    <td>{{ ticket.nombre|default:"N/A" }}</td><td>{{ ticket.colonia.nombre_colonia|default:"N/A" }}</td>
+                    <td><strong style="color:var(--success);">{{ ticket.porcentaje_avance }}%</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal-overlay" id="modal-detalle-ticket">
+        <div class="modal-content">
+            <button class="btn-cerrar" onclick="cerrarModal('modal-detalle-ticket')">×</button>
+            <h2 style="margin-top:0; color: var(--primary); border-bottom: 1px solid var(--border-delicate); padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                 📋 Expediente de Solicitud <span id="m-folio" style="background:#F1F5F9; padding: 6px 14px; border-radius: 10px; font-size: 1rem; color:var(--text-title);"></span>
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; margin-top: 25px;">
+                
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="background: var(--surface); padding: 25px; border-radius: var(--radius-soft); border: 1px solid var(--border-delicate); box-shadow: var(--shadow-card);">
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Solicitante</b> <br><span id="m-nombre" style="font-weight: 700; color: var(--text-title); font-size: 1.05rem;"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gestor (Copaci/Delegado)</b> <br><span id="m-gestor" style="color: var(--text-main); font-weight: 500;"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Asunto / Dependencia</b> <br><span id="m-asunto" style="color: var(--text-main); font-weight: 500;"></span> <br> <span id="m-area" style="font-size:0.8rem; color:var(--primary); font-weight:700; background: #F1F5F9; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 5px;"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Estado General</b> <br><span id="m-status" class="badge" style="margin-top: 5px;"></span></p>
+                        
+                        <div style="border-top: 1px dashed var(--border-delicate); padding-top: 15px; margin-top: 5px;">
+                            <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Contexto Ciudadano</b>
+                            <span id="m-notas-ciudadano" style="display: block; margin-top: 8px; font-size: 0.9rem; line-height: 1.6; color: var(--text-main); font-style: italic;"></span>
+                        </div>
+                    </div>
+
+                    <div id="contenedor-mapa" style="background: white; padding: 20px; border-radius: var(--radius-soft); border: 1px solid var(--border-delicate); display: none; box-shadow: var(--shadow-card);">
+                        <h3 style="margin-bottom: 15px; font-size: 0.9rem; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">📍 Georreferencia</h3>
+                        <div id="mapa-detalle" style="height: 250px; border-radius: 12px; border: 1px solid var(--border-delicate);"></div>
+                    </div>
+                </div>
+
+                <div id="control-4d-container" style="max-height: 750px; overflow-y: auto; padding-right: 15px; overflow-x: hidden;">
+                    </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+        // ==========================================
+        // ICONOS SVG Y FUNCIONES
+        // ==========================================
+        const figIngreso = `<svg viewBox="0 0 64 64"><path d="M48 4H16C9.37 4 4 9.37 4 16v32c0 6.63 5.37 12 12 12h32c6.63 0 12-5.37 12-12V16c0-6.63-5.37-12-12-12zm-28 4h24v4H20V8zm4 32v12h-4V40c0-2.21 1.79-4 4-4h24c2.21 0 4 1.79 4 4v12h-4V40H24z"/></svg>`;
+        const figAsignacion = `<svg viewBox="0 0 64 64"><path d="M56 8H40V4a2 2 0 0 0-2-2H26a2 2 0 0 0-2 2v4H8a2 2 0 0 0-2 2v46a2 2 0 0 0 2 2h48a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM28 6h8v2h-8V6zm-8 44h-4v-4h4v4zm0-8h-4v-4h4v4zm0-8h-4v-4h4v4zm16 24H20v-4h16v4zm0-8H20v-4h16v4zm0-8H20v-4h16v4z"/></svg>`;
+        const figCampo = `<svg viewBox="0 0 64 64"><path d="m41.97 33.15-.36-.08-4.48-.96 3.19-14.89L25.33 34.09l4.13.88-3.04 14.19z"/><path d="m11.23 20.37-3.66 3.66 6.16 6.16 3.66-3.66zm15.65-4.43 3.1 3.1 3.86-3.86L30.74 12zm22.42-3.1-6.16-6.16L39.48 10.3l6.16 6.16zM5.57 32.19 2 35.76l6.16 6.16 3.57-3.57zm43.37-3.1 3.1 3.1 3.86-3.86L52 25.17zm12.3-15.65L55.08 7.28 51.22 11.14l6.16 6.16z"/></svg>`;
+        const figConcluido = `<svg viewBox="0 0 64 64"><path d="m32 2a30 30 0 1 0 30 30 30 30 0 0 0-30-30zm0 56a26 26 0 1 1 26-26 26 26 0 0 1-26 26zm14.12-38.12-18 18-10.12-10.12L14 31.76l14.12 14.12L50 21.76z"/></svg>`;
+
+        function extraerNota(bitacora, descTarea) {
+            if(!bitacora) return "";
+            let lineas = bitacora.split('\n');
+            for(let linea of lineas) {
+                if(linea.includes(`[${descTarea}]`)) {
+                    let partes = linea.split(': ');
+                    if(partes.length > 1) { partes.shift(); return partes.join(': ').trim(); }
+                }
+            }
+            return "";
+        }
+
+        // ==========================================
+        // INICIALIZACIÓN DE MAPA PRINCIPAL
+        // ==========================================
+        var mapPrincipal = L.map('mapa').setView([19.5542, -99.2458], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapPrincipal);
+        var capaMarcadores = L.layerGroup().addTo(mapPrincipal);
+
+        // ==========================================
+        // 🗺️ CARGA MAESTRA DE GEOJSON (Atizapán + Colonias)
+        // ==========================================
+        function cargarGeoJSON(mapaDestino) {
+            // Contorno Atizapán
+            fetch('/static/geojson/atizapan.geojson')
+                .then(response => { if(response.ok) return response.json(); else console.warn('GeoJSON de Atizapán no encontrado en esa ruta'); })
+                .then(data => {
+                    if(data) {
+                        L.geoJSON(data, {
+                            style: {
+                                color: "#1E293B",    // COLOR DEL BORDE DEL MUNICIPIO (Azul marino oscuro)
+                                weight: 3,           // GROSOR DEL BORDE
+                                fillOpacity: 0       // 0 = SIN RELLENO (transparente)
+                            }
+                        }).addTo(mapaDestino);
+                    }
+                }).catch(e => console.log(e));
+
+            // Divisiones Colonias
+            fetch('/static/geojson/colonias_atizapan.geojson')
+                .then(response => { if(response.ok) return response.json(); else console.warn('GeoJSON de Colonias no encontrado'); })
+                .then(data => {
+                    if(data) {
+                        L.geoJSON(data, {
+                            style: {
+                                color: "#64748B",    // COLOR DE LAS LÍNEAS DE COLONIAS (Gris)
+                                weight: 1,           // GROSOR DE LA LÍNEA (Más delgada)
+                                fillColor: "#CBD5E1",// COLOR DE RELLENO
+                                fillOpacity: 0.05    // TRANSPARENCIA DEL RELLENO (0.05 es casi invisible, 1 es sólido)
+                            }
+                        }).addTo(mapaDestino);
+                    }
+                }).catch(e => console.log(e));
+        }
+
+        // Ejecutamos la carga en el mapa principal
+        cargarGeoJSON(mapPrincipal);
+
+        var iconos = {
+            'Nuevo': new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]}),
+            'En Proceso': new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]}),
+            'En Validación': new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]}),
+            'Resuelto': new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]})
+        };
+
+        var puntosBD = {{ tickets_json|safe }};
+        var filtroStatusActual = 'Todos';
+
+        function filtrarMapa(filtroStatus) {
+            filtroStatusActual = filtroStatus;
+            capaMarcadores.clearLayers(); 
+            let txtFiltro = filtroStatus === 'Todos' ? 'Todos los registros' : 'Registros ' + filtroStatus;
+            document.getElementById('mapa-titulo').innerText = "Mostrando: " + txtFiltro;
+            
+            puntosBD.forEach(function(punto) {
+                let pasaStatus = (filtroStatusActual === 'Todos' || punto.status === filtroStatusActual);
+                if (pasaStatus && punto.lat !== 'None' && punto.lng !== 'None') {
+                    // Si elegimos "Todos", respeta el color original de su estatus. Si no lo encuentra, lo pone rojo.
+                    var iconoUsar = iconos[punto.status] || iconos['Nuevo'];
+                    var marker = L.marker([parseFloat(punto.lat), parseFloat(punto.lng)], {icon: iconoUsar});
+                    marker.on('click', function() { abrirDetalleTicket(punto.folio); });
+                    marker.bindTooltip(`<b>Folio #${punto.folio}</b><br>${punto.asunto}`);
+                    capaMarcadores.addLayer(marker);
+                }
+            });
+        }
+        filtrarMapa('Todos');
+
+        const nombresDir = {{ nombres_direcciones|safe }};
+        const totalesDir = {{ totales_direcciones|safe }};
+        if(nombresDir.length > 0) {
+            new Chart(document.getElementById('graficaDirecciones').getContext('2d'), { 
+                type: 'doughnut', 
+                data: { labels: nombresDir, datasets: [{ data: totalesDir, backgroundColor: ['#1E293B', '#D97706', '#10B981', '#F59E0B', '#EF4444', '#94A3B8'] }] }, 
+                options: { responsive: true, maintainAspectRatio: false } 
+            });
+        }
+
+        var mapDetalle = null, markerDetalle = null;
+        
+        // ============================================================================
+        // CEREBRO 4D FRONTEND (VISTA LECTURA SÚPER ADMIN)
+        // ============================================================================
+        function abrirDetalleTicket(folio) {
+            let ticket = puntosBD.find(p => p.folio === folio);
+            if (!ticket) return;
+
+            // 🛡️ EXTRACCIÓN SEGURA DEL TOKEN
+            let csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            let csrfTokenSeguro = csrfInput ? csrfInput.value : '';
+
+            document.getElementById('m-folio').innerText = "#" + ticket.folio;
+            document.getElementById('m-nombre').innerText = ticket.nombre;
+            if(document.getElementById('m-gestor')) document.getElementById('m-gestor').innerText = ticket.gestor;
+            document.getElementById('m-asunto').innerText = ticket.asunto;
+            document.getElementById('m-area').innerText = ticket.direccion;
+            document.getElementById('m-notas-ciudadano').innerText = ticket.notas || "Sin contexto adicional proporcionado.";
+            
+            let statusBadge = document.getElementById('m-status');
+            statusBadge.innerText = ticket.status;
+            statusBadge.className = "badge " + (ticket.status === 'Nuevo' ? 'bg-nuevo' : (ticket.status === 'En Proceso' ? 'bg-proceso' : (ticket.status === 'En Validación' ? 'bg-validacion' : 'bg-resuelto')));
+
+            let container = document.getElementById('control-4d-container');
+            
+            // CÁLCULOS EXACTOS PARA EL PROGRESS TRACK
+            let trackPercent = ticket.porcentaje;
+            let hasSubdirector = ticket.subdirector && ticket.subdirector !== 'Sin asignar';
+            let hasCoordinador = ticket.coordinador && ticket.coordinador !== 'Sin asignar';
+            let isResuelto = ticket.status === 'Resuelto';
+            
+            // 1. TIMELINE HORIZONTAL EXACTO E ILUSTRADO
+            let htmlContent = `
+                <div class="illus-tracker">
+                    <div class="illus-line-bg"></div>
+                    <div class="illus-line-fill" id="anim-illus-fill-admin" style="width: 0%;"></div>
+                    
+                    <div class="illus-node completed">
+                        <div class="illus-figure-box">${figIngreso}</div>
+                        <div class="illus-label">Apertura</div>
+                        <div class="illus-sublabel">${ticket.director !== 'Sin asignar' ? ticket.director : 'Dirección'}</div>
+                    </div>
+
+                    <div class="illus-node ${hasSubdirector ? 'completed' : 'pending'}">
+                        <div class="illus-figure-box">${figAsignacion}</div>
+                        <div class="illus-label">Asignación</div>
+                        <div class="illus-sublabel">${hasSubdirector ? ticket.subdirector : 'Pendiente'}</div>
+                    </div>
+
+                    <div class="illus-node ${hasCoordinador ? (trackPercent > 0 ? 'completed' : 'active') : 'pending'}">
+                        <div class="illus-figure-box">${figCampo}</div>
+                        <div class="illus-label">Operación</div>
+                        <div class="illus-sublabel">${hasCoordinador ? ticket.coordinador : 'Pendiente'}</div>
+                    </div>
+
+                    <div class="illus-node ${isResuelto ? 'finalizado' : 'pending'}">
+                        <div class="illus-figure-box">${figConcluido}</div>
+                        <div class="illus-label">Resuelto</div>
+                    </div>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--border-delicate); margin: 30px 0;">
+            `;
+
+            // 2. DIAGRAMA VERTICAL DE TAREAS (AUDITORÍA)
+            htmlContent += `<h3 style="margin-bottom: 25px; color: var(--text-title); font-weight:800; display:flex; justify-content:space-between; align-items:center;">Secuencia Operativa <span style="font-size:0.8rem; background:var(--primary-light); color:white; padding:4px 10px; border-radius:20px; font-weight:600;">Progreso: ${ticket.porcentaje}%</span></h3>`;
+            htmlContent += `<div class="task-list">`;
+
+            if (ticket.tareas.length === 0) {
+                 htmlContent += `<div style="background:#F8FAFC; border: 1px dashed var(--gray-text); padding:20px; border-radius:12px; text-align:center;"><p style="font-size:0.9rem; color:var(--text-muted); font-style:italic; margin:0;">Aún no se han definido acciones operativas para este folio.</p></div>`;
+            }
+
+            ticket.tareas.forEach((tarea, index) => {
+                let nodeStatus = tarea.completada ? 'completed' : 'pending';
+                let notaEspecifica = extraerNota(ticket.observaciones, tarea.descripcion); 
+
+                htmlContent += `
+                    <div class="task-step">
+                        <div class="task-circle ${nodeStatus}">${tarea.completada ? '✓' : index + 1}</div>
+                        <div class="task-card ${nodeStatus}">
+                            <strong>${tarea.descripcion}</strong>
+                `;
+
+                if (tarea.completada) {
+                    htmlContent += `
+                        <div class="ejecutor-text">
+                            <svg style="width:16px; height:16px; fill:var(--success);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            <span>Acción finalizada por <b>${tarea.ejecutor}</b> • ⏱ ${tarea.tiempo}</span>
+                        </div>
+                    `;
+                    if (tarea.evidencia_url) {
+                        htmlContent += `<a href="${tarea.evidencia_url}" target="_blank" class="btn-pill">Ver Evidencia Fotográfica</a>`;
+                    }
+                    if (notaEspecifica) {
+                        htmlContent += `
+                            <div class="task-note-inline">
+                                <span class="note-title">Observación Operativa</span>
+                                <p class="note-text">"${notaEspecifica}"</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    htmlContent += `<div style="font-size:0.8rem; color:var(--gray-text); margin-top:8px; font-weight:500;"> ⏳ Pendiente de ejecución</div>`;
+                }
+                htmlContent += `</div></div>`;
+            });
+            htmlContent += `</div>`; 
+
+            // 3. BOTÓN DE APROBACIÓN O RECHAZO PARA EL ADMIN SÚPREMO
+            if (ticket.status === 'En Validación') {
+                htmlContent += `
+                    <div style="background: #EFF6FF; border: 1px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px;">
+                        <h3 style="margin-top:0; color: #1D4ED8;">✅ Validación Requerida</h3>
+                        <p style="font-size: 0.85rem; color: #3B82F6; margin-bottom:15px;">La cuadrilla ha finalizado las acciones. Puede aprobar el cierre o devolver el trámite a campo.</p>
+                        
+                        <form method="POST" action="{% url 'inicio' %}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action" id="admin_action_${ticket.folio}" value="">
+                            
+                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Observaciones / Motivo de rechazo (Obligatorio si devuelve):</label>
+                                <input type="text" name="notas_agente" class="form-control" placeholder="Ej: La pieza instalada no es la correcta..." style="padding:10px;">
+                                
+                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Evidencia adjunta (Opcional):</label>
+                                <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;">
+                            </div>
+
+                            <div style="display:flex; gap:15px;">
+                                <button type="submit" onclick="document.getElementById('admin_action_${ticket.folio}').value='aprobar_ticket'" class="btn btn-success" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800;">APROBAR (100%)</button>
+                                <button type="submit" onclick="document.getElementById('admin_action_${ticket.folio}').value='rechazar_ticket'" class="btn btn-danger-outline" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800; background:white;">DEVOLVER TRÁMITE</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = htmlContent;
+            document.getElementById('modal-detalle-ticket').style.display = 'flex';
+            
+            // Animamos la barra verde de progreso
+            setTimeout(() => { 
+                let obj = document.getElementById('anim-illus-fill-admin');
+                if(obj) obj.style.width = trackPercent + "%"; 
+            }, 100);
+            
+            // Renderizamos el mapa
+            var divC = document.getElementById('contenedor-mapa');
+            if (ticket.lat !== 'None' && ticket.lng !== 'None') {
+                divC.style.display = 'block'; 
+                let lat = parseFloat(ticket.lat), lng = parseFloat(ticket.lng);
+                setTimeout(() => {
+                    if (!mapDetalle) {
+                        mapDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDetalle);
+                        
+                        // Cargamos el GeoJSON también para el mapa del modal
+                        cargarGeoJSON(mapDetalle);
+
+                        markerDetalle = L.marker([lat, lng], {icon: iconos[ticket.status] || iconos['Nuevo']}).addTo(mapDetalle);
+                    } else { 
+                        mapDetalle.setView([lat, lng], 16); 
+                        markerDetalle.setLatLng([lat, lng]); 
+                        markerDetalle.setIcon(iconos[ticket.status] || iconos['Nuevo']); 
+                    }
+                    mapDetalle.invalidateSize(); 
+                }, 300); 
+            } else { divC.style.display = 'none'; }
+        }
+
+        function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+        window.onclick = function(event) { if (event.target.classList.contains('modal-overlay')) event.target.style.display = 'none'; }
+
+        // TABLAS EN ESPAÑOL
+        $(document).ready(function() {
+            $('#tabla-tickets').DataTable({
+                dom: 'Bfrtip',
+                buttons: [{ extend: 'excelHtml5', text: ' Descargar Padrón Base', title: 'Reporte_General_Tickets' }],
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                pageLength: 10
+            });
+        });
+    </script>
+</body>
+</html>

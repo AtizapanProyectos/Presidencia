@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acceso Seguro - Mesa de Ayuda</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-app: #F8F9FA;           
+            --surface: #FFFFFF;
+            --primary: #0A1931;          
+            --primary-light: #152B4D;
+            --gold-accent: #C1A661;      
+            --danger: #b91c1c; 
+            --danger-light: #fee2e2;
+            --text-title: #071224;
+            --text-main: #334155;
+            --text-muted: #64748B;
+            --border-delicate: 1px solid rgba(10, 25, 49, 0.08);
+            --radius-soft: 24px;
+            --radius-pill: 50px;
+            --shadow-float: 0 20px 40px -10px rgba(10, 25, 49, 0.12);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-app); 
+            color: var(--text-main); 
+            height: 100vh; display: flex; justify-content: center; align-items: center; margin: 0;
+            background-image: radial-gradient(circle at top right, rgba(193, 166, 97, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(10, 25, 49, 0.05) 0%, transparent 40%);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .login-card {
+            background: var(--surface); padding: 50px 45px; border-radius: var(--radius-soft); 
+            box-shadow: var(--shadow-float); width: 100%; max-width: 360px; text-align: center;
+            border: var(--border-delicate); position: relative; overflow: hidden;
+            opacity: 0; transform: translateY(30px);
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .login-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: linear-gradient(90deg, var(--primary), var(--gold-accent));
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 { font-family: 'Montserrat', sans-serif; margin-top: 0; color: var(--primary); font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px; }
+        p.subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 35px; line-height: 1.5; }
+        
+        form { display: flex; flex-direction: column; text-align: left; }
+        
+        label { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 14px 18px; margin-bottom: 25px; 
+            border: 1.5px solid #E2E8F0; border-radius: 12px; box-sizing: border-box;
+            font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-title);
+            background: #F8FAFC; transition: all 0.3s ease;
+        }
+        
+        input[type="text"]:focus, input[type="password"]:focus { 
+            border-color: var(--primary); outline: none; background: var(--surface);
+            box-shadow: 0 0 0 4px rgba(10, 25, 49, 0.08); 
+        }
+        
+        .btn-ingresar {
+            font-family: 'Montserrat', sans-serif; background: var(--primary); color: var(--surface); 
+            border: none; padding: 15px; font-size: 0.95rem; font-weight: 700; border-radius: var(--radius-pill); 
+            cursor: pointer; margin-top: 10px; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(10, 25, 49, 0.2);
+            position: relative; overflow: hidden;
+        }
+        .btn-ingresar:hover { background: var(--primary-light); transform: translateY(-3px); box-shadow: 0 12px 25px rgba(10, 25, 49, 0.3); }
+        
+        .error-msg {
+            background: var(--danger-light); color: var(--danger); padding: 15px; 
+            border-radius: 12px; font-size: 0.85em; margin-bottom: 25px; border: 1px solid rgba(185,28,28,0.2);
+            font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2> Iniciar Sesión</h2>
+        <p class="subtitle">Plataforma de Control y <br>Gestión Operativa</p>
+
+        {% if form.errors %}
+            <div class="error-msg"Credenciales no reconocidas.</div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <label for="id_username">Clave Institucional</label> 
+            {{ form.username }}
+            
+            <label for="id_password">Contraseña de Seguridad</label> 
+            {{ form.password }}
+            
+            <button type="submit" class="btn-ingresar">Acceder al Sistema</button>
+        </form>
+    </div>
+
+    <script>
+        const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.transform = 'scale(1.02)';
+            });
+            input.addEventListener('blur', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        const btn = document.querySelector('.btn-ingresar');
+        btn.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const ripple = document.createElement('span');
+            ripple.style.position = 'absolute';
+            ripple.style.background = 'rgba(193, 166, 97, 0.4)'; 
+            ripple.style.borderRadius = '50%';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.transform = 'translate(-50%, -50%)';
+            ripple.style.width = '0px';
+            ripple.style.height = '0px';
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            ripple.style.transition = 'width 0.5s ease-out, height 0.5s ease-out, opacity 0.8s ease-out';
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                const size = Math.max(rect.width, rect.height) * 2.5;
+                ripple.style.width = `${size}px`;
+                ripple.style.height = `${size}px`;
+                ripple.style.opacity = '0';
+            }, 10);
+            
+            setTimeout(() => ripple.remove(), 800);
+        });
+    </script>
+</body>
+</html>

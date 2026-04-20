@@ -1,0 +1,122 @@
+/* ========================================================================
+   GOBIERNO DIGITAL 2026 - DISEÑO UNIVERSAL MAESTRO
+   ======================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+:root {
+    /* Paleta Institucional basada en PDF */
+    --bg-app: #f4f7f9;
+    --primary: #1A365D;      /* Azul Gobierno Profundo */
+    --primary-light: #2563EB; /* Azul Interactivo */
+    --accent: #8B5CF6;       /* Morado de los pasos del PDF */
+    --success: #10B981;      /* Verde vibrante */
+    --warning: #F59E0B;      /* Amarillo alertas */
+    --danger: #EF4444;       /* Rojo urgencias */
+    --dark: #1E293B;         /* Texto principal */
+    --gray: #64748B;         /* Texto secundario */
+    --light-border: #E2E8F0;
+    --white: #ffffff;
+    
+    /* Sombras modernas (Estilo Apple/Vercel) */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
+    --shadow-md: 0 10px 25px rgba(0,0,0,0.05);
+    --shadow-lg: 0 20px 40px rgba(0,0,0,0.08);
+    
+    --radius: 12px;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-app);
+    color: var(--dark);
+    margin: 0;
+    padding: 25px;
+    line-height: 1.6;
+}
+
+/* ================= ENCABEZADOS ================= */
+h1, h2, h3 { color: var(--primary); font-weight: 700; letter-spacing: -0.5px; }
+h1 { border-bottom: 3px solid var(--light-border); padding-bottom: 15px; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+
+/* ================= TARJETAS Y PANELES ================= */
+.panel, .formulario-container, .login-card, .filter-panel, .ticket-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+/* ================= KPIs (TARJETAS DE NÚMEROS) ================= */
+.kpi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+.card {
+    background: var(--white); padding: 25px; border-radius: var(--radius);
+    box-shadow: var(--shadow-md); text-align: center; position: relative;
+    overflow: hidden; border-bottom: 4px solid #ccc;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
+.card h3 { margin: 0; font-size: 1.05rem; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+.card .numero { font-size: 3rem; font-weight: 800; margin: 10px 0 0 0; }
+
+/* Colores de los KPIs según la imagen */
+.card-total { border-bottom-color: var(--primary-light); } .card-total .numero { color: var(--primary-light); }
+.card-nuevo { border-bottom-color: var(--danger); } .card-nuevo .numero { color: var(--danger); }
+.card-proceso { border-bottom-color: var(--warning); } .card-proceso .numero { color: var(--warning); }
+.card-resuelto { border-bottom-color: var(--success); } .card-resuelto .numero { color: var(--success); }
+
+/* ================= BOTONES UNIVERSALES ================= */
+.btn-accion, .btn-guardar, .btn-ingresar {
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    color: var(--white); border: none; padding: 12px 24px; border-radius: 8px;
+    font-weight: 600; font-size: 0.95rem; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); transition: all 0.2s;
+}
+.btn-accion:hover, .btn-guardar:hover, .btn-ingresar:hover {
+    transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.35); filter: brightness(1.1);
+}
+.btn-flotante {
+    background: linear-gradient(135deg, var(--dark), var(--primary));
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3); border-radius: 50px;
+    padding: 15px 30px; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.btn-flotante:hover { transform: scale(1.05) translateY(-5px); }
+
+/* ================= TABLAS Y DATATABLES ================= */
+table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; }
+th { background-color: #F8FAFC !important; color: var(--gray) !important; font-weight: 700 !important; text-transform: uppercase; font-size: 0.85rem; padding: 15px !important; border-bottom: 2px solid var(--light-border) !important; }
+td { padding: 15px !important; vertical-align: middle; border-bottom: 1px solid var(--light-border); color: var(--dark); font-size: 0.95rem; }
+tr.fila-ticket:hover, .ticket-card:hover { background-color: #F1F5F9; transform: translateX(5px); transition: all 0.2s; }
+
+/* Botones de Excel */
+.dt-buttons .dt-button { background: var(--success) !important; color: white !important; border-radius: 8px !important; font-weight: 600 !important; padding: 10px 20px !important; border: none !important; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2) !important; transition: all 0.2s !important;}
+.dt-buttons .dt-button:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4) !important; }
+
+/* ================= ETIQUETAS (BADGES) ================= */
+.badge { padding: 6px 14px; border-radius: 30px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+.bg-nuevo { background-color: var(--danger); color: white; }
+.bg-proceso { background-color: var(--warning); color: var(--dark); }
+.bg-resuelto { background-color: var(--success); color: white; }
+
+/* ================= FORMULARIOS ================= */
+input, select, textarea {
+    width: 100%; padding: 12px; margin-top: 8px; border: 1.5px solid var(--light-border);
+    border-radius: 8px; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 0.95rem;
+    transition: all 0.3s ease; background-color: #F8FAFC;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: var(--primary-light); background-color: var(--white);
+    outline: none; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+/* ================= MODALES (EFECTO GLASSMORPHISM) ================= */
+.modal-overlay { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.modal-content { border-radius: 16px; border: 1px solid rgba(255,255,255,0.2); box-shadow: var(--shadow-lg); }
+
+/* ================= SCROLLBARS ELEGANTES ================= */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-app); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }

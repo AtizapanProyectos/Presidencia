@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Módulo de Captura - Gobierno Digital</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        :root {
+            --bg-app: #F1F5F9; /* Fondo un poco más gris/azulado para resaltar las tarjetas blancas */
+            --surface: #FFFFFF;
+            --primary: #0F172A; 
+            --primary-light: #334155; 
+            --gold-accent: #D97706;      
+            --success: #10B981; 
+            --success-light: #ECFDF5;
+            --danger:  #EF4444; 
+            --danger-light:  #FEF2F2;
+            --text-title: #0F172A; 
+            --text-main: #475569; 
+            --text-muted: #94A3B8;
+            --border-delicate: 1px solid #E2E8F0;
+            --radius-soft: 20px; 
+            --radius-pill: 50px;
+            --shadow-float: 0 20px 40px -10px rgba(15, 23, 42, 0.08);
+            --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.03);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-app); color: var(--text-main); padding: 30px 40px; margin: 0; -webkit-font-smoothing: antialiased; }
+        
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; color: var(--text-title); margin: 0; }
+        h1 { font-weight: 800; font-size: 1.8rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; margin-bottom: 5px;}
+        h3 { font-weight: 700; font-size: 1.15rem; color: var(--primary); margin-bottom: 25px; border-bottom: 2px solid #F1F5F9; padding-bottom: 15px; display: flex; align-items: center; gap: 10px;}
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; margin-bottom: 30px; border-bottom: 2px solid var(--border-delicate); }
+        .instrucciones { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; font-weight: 500; }
+
+        .btn { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.9rem; padding: 12px 28px; border-radius: var(--radius-pill); border: none; cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-cancelar { background: var(--surface); border: 2px solid #E2E8F0; color: var(--text-main); box-shadow: var(--shadow-card); }
+        .btn-cancelar:hover { background: var(--danger-light); color: var(--danger); border-color: #FECACA; transform: translateY(-2px); }
+        
+        .btn-guardar { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: var(--surface); width: 100%; font-size: 1.05rem; padding: 18px; margin-top: 25px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); }
+        .btn-guardar:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(15, 23, 42, 0.3); }
+
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 35px; }
+        
+        .panel { background: var(--surface); padding: 40px; border-radius: var(--radius-soft); box-shadow: var(--shadow-card); border: 1px solid #FFFFFF; transition: all 0.4s ease; opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s forwards cubic-bezier(0.16, 1, 0.3, 1); }
+        .panel:nth-child(2) { animation-delay: 0.1s; padding: 30px; }
+        .panel:hover { box-shadow: var(--shadow-float); }
+        
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+        /* STYLING MAGICO PARA EL FORMULARIO DE DJANGO */
+        .formulario-container p { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .formulario-container label { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .formulario-container input, .formulario-container select, .formulario-container textarea {
+            padding: 16px 20px; 
+            border: 2px solid #E2E8F0; 
+            border-radius: 14px; 
+            font-family: 'Inter', sans-serif; 
+            font-size: 0.95rem; 
+            color: var(--text-title); 
+            background: #F8FAFC; 
+            transition: all 0.3s ease; 
+            box-sizing: border-box; 
+            width: 100%;
+            font-weight: 500;
+        }
+        .formulario-container input:focus, .formulario-container select:focus, .formulario-container textarea:focus {
+            outline: none; 
+            border-color: var(--primary); 
+            background: var(--surface); 
+            box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.08);
+        }
+        .formulario-container textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+        #mapa { height: 650px; width: 100%; border-radius: 16px; border: var(--border-delicate); box-shadow: inset 0 2px 10px rgba(0,0,0,0.03); z-index: 1; }
+
+        /* AVISO IA MEJORADO */
+        .aviso-ia { 
+            display: none; 
+            background: linear-gradient(145deg, var(--success-light), #D1FAE5); 
+            color: var(--success); 
+            padding: 18px 20px; 
+            border-radius: 14px; 
+            border-left: 5px solid var(--success); 
+            font-family: 'Montserrat', sans-serif; 
+            font-size: 0.85rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+            margin-top: 15px; 
+            margin-bottom: 25px; 
+            animation: slideDown 0.4s ease-out, parpadeo 2s infinite; 
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes parpadeo { 0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); } 50% { box-shadow: 0 4px 25px rgba(16, 185, 129, 0.4); } 100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); } }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div>
+            <h1>📝 Módulo de Captura Ciudadana</h1>
+            <p class="instrucciones">El Sistema de Gestión generará un folio inmutable al guardar el expediente.</p>
+        </div>
+        <a href="{% url 'inicio' %}" class="btn btn-cancelar">⬅ Cancelar y Volver</a>
+    </div>
+
+    <div class="dashboard-grid">
+        
+        <div class="panel formulario-container">
+            <h3>📋 Datos del Solicitante y Afectación</h3>
+            <form method="POST">
+                {% csrf_token %}
+                
+                {{ formulario.as_p }}
+                
+                <div id="mensaje-prediccion" class="aviso-ia" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                    Rutéo Inteligente: Área asignada automáticamente
+                </div>
+
+                <button type="submit" class="btn btn-guardar">Generar Folio Oficial</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h3>🗺️ Levantamiento Geográfico</h3>
+            <p class="instrucciones" style="margin-bottom: 20px;">Al seleccionar la colonia, el mapa se centrará. Mueva el pin rojo para exactitud.</p>
+            <div id="mapa"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // Animaciones suaves en inputs
+        document.addEventListener("DOMContentLoaded", () => {
+            const inputs = document.querySelectorAll('.formulario-container input, .formulario-container select, .formulario-container textarea');
+            inputs.forEach(el => {
+                el.addEventListener('focus', function() { this.parentElement.style.transform = 'scale(1.01)'; this.parentElement.style.transition = 'transform 0.2s'; });
+                el.addEventListener('blur', function() { this.parentElement.style.transform = 'scale(1)'; });
+            });
+        });
+
+        // INICIALIZACIÓN DEL MAPA
+        var map = L.map('mapa').setView([19.5542, -99.2458], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB'
+        }).addTo(map);
+
+        // ==========================================
+        // 🗺️ CARGA GEOJSON (Atizapán + Colonias)
+        // ==========================================
+        function cargarGeoJSON(mapaDestino) {
+            // Contorno Atizapán
+            fetch('/static/geojson/atizapan.geojson')
+                .then(response => { if(response.ok) return response.json(); })
+                .then(data => {
+                    if(data) {
+                        L.geoJSON(data, {
+                            style: { color: "#1E293B", weight: 4, fillOpacity: 0 }
+                        }).addTo(mapaDestino);
+                    }
+                }).catch(e => console.log(e));
+
+            // Divisiones Colonias
+            fetch('/static/geojson/colonias_atizapan.geojson')
+                .then(response => { if(response.ok) return response.json(); })
+                .then(data => {
+                    if(data) {
+                        L.geoJSON(data, {
+                            style: { color: "#64748B", weight: 1, fillColor: "#CBD5E1", fillOpacity: 0.05 }
+                        }).addTo(mapaDestino);
+                    }
+                }).catch(e => console.log(e));
+        }
+
+        // Ejecutar carga GeoJSON
+        cargarGeoJSON(map);
+
+        // MARCADOR ROJO (Para mantener estética)
+        var iconRed = new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]});
+        var marcador = L.marker([19.5542, -99.2458], {draggable: true, icon: iconRed}).addTo(map);
+
+        function actualizarInputs(lat, lng) {
+            document.getElementById('id_latitud').value = lat.toFixed(6);
+            document.getElementById('id_longitud').value = lng.toFixed(6);
+        }
+
+        marcador.on('dragend', function(e) {
+            var posicion = marcador.getLatLng();
+            actualizarInputs(posicion.lat, posicion.lng);
+        });
+
+        map.on('click', function(e) {
+            marcador.setLatLng(e.latlng);
+            actualizarInputs(e.latlng.lat, e.latlng.lng);
+        });
+
+        // BÚSQUEDA AUTOMÁTICA DE COLONIA EN EL MAPA
+        document.getElementById('id_colonia').addEventListener('change', function() {
+            var textoColonia = this.options[this.selectedIndex].text;
+            if (textoColonia.includes('---')) return;
+
+            var busqueda = textoColonia + ", Atizapan de Zaragoza, Estado de Mexico";
+            var url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(busqueda)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        var lat = parseFloat(data[0].lat);
+                        var lon = parseFloat(data[0].lon);
+                        map.setView([lat, lon], 16);
+                        marcador.setLatLng([lat, lon]);
+                        actualizarInputs(lat, lon);
+                    }
+                });
+        });
+
+        actualizarInputs(19.5542, -99.2458);
+
+        // ==========================================
+        // 🧠 RUTEO DE INTELIGENCIA ARTIFICIAL
+        // ==========================================
+        const diccionarioAreas = {
+            'SAPASA': ['agua', 'fuga', 'tubo', 'drenaje', 'inundación', 'inundacion', 'alcantarilla', 'pipa', 'coladera', 'desazolve', 'sin servicio'],
+            'Servicios Públicos': ['luz', 'lámpara', 'lampara', 'luminaria', 'árbol', 'arbol', 'basura', 'barrido', 'parque', 'poda', 'ramas', 'alumbrado', 'camión de basura'],
+            'Obras Públicas': ['bache', 'pavimentación', 'pavimentacion', 'banqueta', 'calle', 'obra', 'socavón', 'socavon', 'asfalto', 'puente'],
+            'Seguridad': ['policía', 'policia', 'robo', 'patrulla', 'asalto', 'delito', 'sospechoso', 'seguridad'],
+            'Protección Civil': ['incendio', 'riesgo', 'derrumbe', 'emergencia', 'gas', 'olor', 'bomberos', 'accidente']
+        };
+
+        function predecirAreaAutomática() {
+            let campoAsunto = document.getElementById('id_asunto');
+            let campoNotas = document.getElementById('id_notas');
+            let campoDireccion = document.getElementById('id_direccion'); 
+            let avisoIA = document.getElementById('mensaje-prediccion');
+
+            if (!campoAsunto || !campoNotas || !campoDireccion) return;
+
+            let textoCompleto = (campoAsunto.value + " " + campoNotas.value).toLowerCase();
+
+            for (const [nombreAreaBD, palabrasClave] of Object.entries(diccionarioAreas)) {
+                if (palabrasClave.some(palabra => textoCompleto.includes(palabra))) {
+                    for (let i = 0; i < campoDireccion.options.length; i++) {
+                        if (campoDireccion.options[i].text.toLowerCase().includes(nombreAreaBD.toLowerCase())) {
+                            if (campoDireccion.selectedIndex === i) return;
+
+                            campoDireccion.selectedIndex = i;
+                            
+                            avisoIA.style.display = 'flex'; // Cambiado a flex para el icono
+                            campoDireccion.parentNode.insertBefore(avisoIA, campoDireccion.nextSibling);
+                            
+                            return; 
+                        }
+                    }
+                }
+            }
+            
+            if(textoCompleto.trim() === "") {
+                avisoIA.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var asunto = document.getElementById('id_asunto');
+            var notas = document.getElementById('id_notas');
+            if(asunto) asunto.addEventListener('input', predecirAreaAutomática);
+            if(notas) notas.addEventListener('input', predecirAreaAutomática);
+        });
+
+    </script>
+</body>
+</html>

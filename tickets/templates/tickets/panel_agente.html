@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consola Operativa 4D - Gobierno Digital</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <style>
+        :root {
+            --bg-app: #F8F9FA; --surface: #FFFFFF;
+            --primary: #0A1931; --primary-light: #152B4D; --gold-accent: #C1A661;      
+            --success: #15803d; --success-light: #eafff0; --success-border: #bcebc7;
+            --warning: #b45309; --warning-light: #fef3c7;
+            --danger:  #b91c1c; --danger-light:  #fee2e2;
+            --text-title: #071224; --text-main: #334155; --text-muted: #64748B;
+            --border-delicate: 1px solid rgba(10, 25, 49, 0.08);
+            --radius-soft: 16px; --radius-pill: 50px;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.03);
+            --gray-pending: #E2E8F0; --gray-text: #94A3B8;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); padding: 30px 40px; margin:0; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; color: var(--text-title); margin: 0; }
+        h1 { font-weight: 800; font-size: 1.8rem; letter-spacing: -0.5px; }
+        h2 { font-weight: 700; font-size: 1.25rem; margin-bottom: 20px; color: var(--primary); }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; margin-bottom: 30px; border-bottom: 2px solid rgba(10, 25, 49, 0.05); }
+        .panel { background: var(--surface); padding: 30px; border-radius: var(--radius-soft); box-shadow: var(--shadow-card); border: var(--border-delicate); margin-bottom: 30px;}
+        .filter-panel { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; background: var(--surface); padding: 25px 30px; border-radius: var(--radius-soft); box-shadow: var(--shadow-card); margin-bottom: 30px; border: var(--border-delicate); }
+        
+        .form-group { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 8px; }
+        label { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-control { width: 100%; padding: 12px 18px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-title); background: #F8FAFC; box-sizing: border-box; transition: all 0.3s ease; }
+        .form-control:focus { outline: none; border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(10, 25, 49, 0.08); }
+
+        .btn { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.8rem; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-primary { background: var(--primary); color: var(--surface); }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(10,25,49,0.2); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #166534; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(21,128,61,0.2); }
+        .btn-warning { background: var(--gold-accent); color: var(--surface); }
+        .btn-danger-outline { background: transparent; border: 1.5px solid var(--danger); color: var(--danger); padding: 10px 24px; }
+
+        #mapa-general { height: 450px; width: 100%; border-radius: var(--radius-soft); margin-bottom: 30px; z-index: 1; border: var(--border-delicate); }
+        .dashboard-grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 30px; }
+        .ticket-card { background: var(--surface); padding: 25px; border-radius: 12px; margin-bottom: 20px; cursor: pointer; border-left: 6px solid var(--primary); box-shadow: var(--shadow-card); transition: transform 0.2s; border-top: var(--border-delicate); border-right: var(--border-delicate); border-bottom: var(--border-delicate); }
+        .ticket-card:hover { transform: translateX(5px); }
+        .columna-scroll { max-height: 600px; overflow-y: auto; padding-right: 15px; }
+        
+        .badge { padding: 6px 14px; border-radius: var(--radius-pill); font-size: 0.75rem; font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; display: inline-block; }
+        .bg-nuevo { background-color: var(--danger-light); color: var(--danger); border: 1px solid rgba(185,28,28,0.2); }
+        .bg-proceso { background-color: var(--warning-light); color: var(--warning); border: 1px solid rgba(180,83,9,0.2); }
+        .bg-resuelto { background-color: var(--success-light); color: var(--success); border: 1px solid rgba(21,128,61,0.2); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(7, 18, 36, 0.4); backdrop-filter: blur(10px); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: var(--surface); padding: 40px 45px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.4); position: relative; animation: modalFadeIn 0.3s ease-out; }
+        @keyframes modalFadeIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .btn-cerrar { position: absolute; top: 20px; right: 25px; background: #F8FAFC; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; z-index: 999; }
+        .btn-cerrar:hover { background: var(--danger-light); color: var(--danger); transform: rotate(90deg); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+
+        /* =================================================================
+           🌟 TIMELINE HORIZONTAL ILUSTRADO (ESTILO IMAGEN)
+           ================================================================= */
+        .illus-tracker { display: flex; justify-content: space-between; position: relative; margin: 20px 0 50px 0; padding: 0 20px; }
+        .illus-line-bg { position: absolute; top: 25px; left: 60px; right: 60px; height: 3px; background-image: linear-gradient(to right, var(--gray-pending) 50%, transparent 50%); background-size: 12px 3px; background-repeat: repeat-x; z-index: 1; }
+        .illus-line-fill { position: absolute; top: 25px; left: 60px; height: 3px; background-color: var(--primary); z-index: 2; transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); width: 0%; }
+        .illus-node { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; width: 110px; text-align: center; }
+        
+        .illus-figure-box { width: 50px; height: 50px; border-radius: 12px; display: flex; justify-content: center; align-items: center; transition: all 0.6s ease; background: #FFFFFF; border: 2px solid var(--gray-pending); padding: 8px; box-sizing: border-box;}
+        .illus-figure-box svg { width: 100%; height: 100%; fill: var(--gray-text); transition: all 0.6s ease; }
+        
+        .illus-node.completed .illus-figure-box { background: var(--primary); border-color: var(--primary); box-shadow: 0 4px 10px rgba(10, 25, 49, 0.1); }
+        .illus-node.completed .illus-figure-box svg { fill: #FFFFFF; }
+        .illus-node.completed .illus-label { color: var(--primary); font-weight: 700; }
+        
+        .illus-node.active .illus-figure-box { border-color: var(--gold-accent); border-width: 3px; box-shadow: 0 0 0 4px rgba(193, 166, 97, 0.2); }
+        .illus-node.active .illus-figure-box svg { fill: var(--gold-accent); }
+        .illus-node.active .illus-label { color: var(--text-main); font-weight: 700; }
+        
+        .illus-node.pending .illus-label { color: var(--gray-text); font-weight: 500; }
+
+        /* NODO FINALIZADO AL 100% (VERDE) */
+        .illus-node.finalizado .illus-figure-box { background: var(--success); border-color: var(--success); box-shadow: 0 4px 10px rgba(21, 128, 61, 0.2); }
+        .illus-node.finalizado .illus-figure-box svg { fill: #FFFFFF; }
+        .illus-node.finalizado .illus-label { color: var(--success); font-weight: 800; }
+
+        .illus-label { font-size: 0.75rem; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; transition: color 0.3s; font-family: 'Montserrat', sans-serif; }
+        .illus-sublabel { font-size: 0.65rem; color: var(--text-muted); margin-top: 4px; line-height: 1.2; font-weight: 600; }
+
+        /* =================================================================
+           🌟 DIAGRAMA VERTICAL DE TAREAS (ESTILO IMAGEN)
+           ================================================================= */
+        .task-list { position: relative; margin-top: 20px; padding-bottom: 20px;}
+        .task-step { display: flex; gap: 20px; margin-bottom: 25px; position: relative; }
+        .task-step:not(:last-child)::before { content: ''; position: absolute; left: 24px; top: 50px; bottom: -30px; width: 0; border-left: 3px dashed #CBD5E1; z-index: 0; }
+
+        .task-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; font-family: 'Montserrat', sans-serif; z-index: 1; flex-shrink: 0; transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .task-circle.completed { background: var(--success); color: white; border: none; }
+        .task-circle.pending { background: #FFFFFF; color: var(--gray-text); border: 2px solid var(--gray-pending); }
+        
+        .task-card { flex-grow: 1; padding: 20px 25px; border-radius: 12px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .task-card.completed { background: var(--success-light); border: 1px solid var(--success-border); }
+        .task-card.completed strong { color: var(--success); font-size: 1rem; display: block; margin-bottom: 5px; text-decoration: line-through; font-family: 'Montserrat', sans-serif;}
+        .task-card.pending { background: #FFFFFF; border: 1px solid #E2E8F0; }
+        .task-card.pending strong { color: var(--text-main); font-size: 1rem; display: block; margin-bottom: 5px; font-family: 'Montserrat', sans-serif; }
+
+        .ejecutor-text { font-size: 0.75rem; color: var(--success); display: flex; align-items: center; gap: 5px; font-weight: 600; margin-bottom: 12px; }
+        .task-card form { margin-top: 15px; border-top: 1px dashed var(--border-delicate); padding-top: 15px; }
+
+        .task-note-inline { background: rgba(255,255,255,0.7); border-left: 3px solid var(--success); padding: 12px 15px; margin-top: 15px; border-radius: 4px; font-size: 0.85rem; color: var(--text-main); display: flex; gap: 10px; align-items: flex-start; font-style: italic;}
+        .task-note-inline .icon { color: var(--success); font-weight: 800; font-size: 1.1rem; line-height: 1;}
+
+    </style>
+</head>
+<body>
+
+    <form style="display:none;" id="form-token-global">{% csrf_token %}</form>
+
+    <div class="top-bar">
+        <div>
+            <h1>Consola de Mando Operativo</h1>
+            <p style="margin:0; color:var(--text-muted); font-weight:600;">Jerarquía Activa: <span style="color:var(--primary); text-transform: uppercase;">{{ rol_usuario }}</span></p>
+        </div>
+        <a href="{% url 'salir' %}" class="btn btn-danger-outline">Finalizar Turno</a>
+    </div>
+
+    <form method="GET" class="filter-panel">
+        <div class="form-group" style="flex:2;">
+            <label>Búsqueda Rápida</label>
+            <input type="text" name="q" value="{{ f_q }}" class="form-control" placeholder="Folio, solicitante, notas...">
+        </div>
+        <div class="form-group">
+            <label>Desde</label>
+            <input type="date" name="fecha_inicio" value="{{ f_fecha_inicio }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Hasta</label>
+            <input type="date" name="fecha_fin" value="{{ f_fecha_fin }}" class="form-control">
+        </div>
+        <div class="form-group" style="flex:1.5;">
+            <label>Zonificación de Ruta</label>
+            <select name="colonia_id" class="form-control">
+                <option value="">-- Todo el territorio --</option>
+                {% for col in colonias %}<option value="{{ col.id }}" {% if col.id == f_colonia_id %}selected{% endif %}>{{ col.nombre_colonia }}</option>{% endfor %}
+            </select>
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 15px; padding-bottom:2px;">
+            <button type="submit" class="btn btn-primary">Aplicar</button>
+            <a href="{% url 'panel_agente' %}" class="btn btn-danger-outline" style="border:none;">✖ Borrar</a>
+        </div>
+    </form>
+
+    <div class="panel" style="padding: 20px;">
+        <h2 style="margin:0 0 15px 0; border-bottom: none;">Mapa Estratégico de Ruta</h2>
+        <div id="mapa-general"></div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div>
+            <h2 style="border-bottom: 2px solid var(--border); padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                Bandeja de Asignaciones
+                <span style="font-size: 0.75em; background: var(--primary-light); color: white; padding: 4px 10px; border-radius: 20px; font-weight: normal;">Pendientes</span>
+            </h2>
+            <div class="columna-scroll">
+                {% for ticket in tickets_activos %}
+                    <div class="ticket-card" onclick="iniciarLogica4D('{{ ticket.folio }}')">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 1.15rem; color: var(--primary); font-weight: 800;">#{{ ticket.folio }}</span>
+                            <span class="badge {% if ticket.status == 'Nuevo' %}bg-nuevo{% else %}bg-proceso{% endif %}">{{ ticket.status }}</span>
+                        </div>
+                        <p style="margin: 0 0 8px 0; font-weight: 600; color: var(--text-main);">{{ ticket.asunto }}</p>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                            <span> {{ ticket.colonia.nombre_colonia }}</span>
+                            <span style="color: {% if ticket.dias_abierto > 3 %}var(--danger){% else %}var(--warning){% endif %}; font-weight: 700;">⏱ Rezago: {{ ticket.dias_abierto }} d</span>
+                        </div>
+                        
+                        <div style="background:#e2e8f0; border-radius:10px; height:6px; margin-top:12px; overflow:hidden;">
+                            <div style="background:var(--primary); height:100%; width:{{ ticket.porcentaje_avance }}%;"></div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div style="background: #F8FAFC; padding: 30px; text-align: center; border-radius: 12px; border: 1px dashed var(--border); color: var(--text-muted); font-weight: 500;">Bandeja limpia. Sin asignaciones pendientes.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <h2 style="border-bottom: 2px solid var(--border); padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                Casos Concluidos
+                <span style="font-size: 0.75em; background: var(--success); color: white; padding: 4px 10px; border-radius: 20px; font-weight: normal;">Historial</span>
+            </h2>
+            <div class="columna-scroll">
+                {% for resuelto in tickets_resueltos %}
+                    <div class="ticket-card" style="border-left-color: var(--success); padding: 20px;" onclick="iniciarLogica4D('{{ resuelto.folio }}')">
+                        <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">#{{ resuelto.folio }}</div>
+                        <p style="margin: 4px 0 8px 0; font-size: 0.9rem; color: var(--text-muted);">{{ resuelto.asunto }}</p>
+                        <div style="font-size: 0.8rem; color: var(--success); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">✓ Operación Cerrada (100%)</div>
+                    </div>
+                {% empty %}
+                    <p style="color: var(--text-muted); font-style: italic; text-align: center; padding: 20px;">Sin historial de resolución reciente.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-detalle" class="modal-overlay">
+        <div class="modal-content" style="width: 1200px;">
+            <button class="btn-cerrar" onclick="cerrarModal()">&times;</button>
+            <h2 style="margin-top:0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                Expediente Digital 4D <span id="m-folio" style="background:#F1F5F9; padding: 4px 12px; border-radius: 8px; font-size: 1.1rem; color:var(--text-muted);"></span>
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; margin-top: 25px;">
+                
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="background: #F8FAFC; padding: 25px; border-radius: var(--radius-soft); border: 1px solid var(--border);">
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Solicitante</b> <br><span id="m-nombre" style="font-weight: 600; color: var(--text-main);"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gestor (Copaci/Delegado)</b> <br><span id="m-gestor" style="color: var(--text-main); font-weight: 500;"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Asunto</b> <br><span id="m-asunto" style="color: var(--text-main);"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Estado General</b> <br><span id="m-status" class="badge"></span></p>
+                        
+                        <div style="border-top: 1px dashed var(--border); padding-top: 15px; margin-top: 5px;">
+                            <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Contexto Ciudadano</b>
+                            <span id="m-notas-ciudadano" style="display: block; margin-top: 8px; font-size: 0.9rem; line-height: 1.6; color: var(--text-main);"></span>
+                        </div>
+                    </div>
+
+                    <div id="contenedor-mapa" style="background: white; padding: 20px; border-radius: var(--radius-soft); border: 1px solid var(--border); display: none;">
+                        <h3 style="margin-bottom: 15px; font-size: 1rem; color: var(--primary);"> Georreferencia</h3>
+                        <div id="mapa-detalle" style="height: 250px; border-radius: 8px; border: 1px solid var(--border);"></div>
+                    </div>
+                    <p id="m-sin-mapa" style="color:var(--danger); text-align:center; padding: 15px; border: 1px dashed var(--danger); border-radius: 8px; background: var(--danger-light); font-weight: 600; display: none;">No hay coordenadas adjuntas.</p>
+                </div>
+
+                <div id="control-4d-container" style="max-height: 750px; overflow-y: auto; padding-right: 15px; overflow-x: hidden;">
+                    </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ICONOS SVG (Sin emojis)
+        // ==========================================
+        const figIngreso = `<svg viewBox="0 0 64 64"><path d="M48 4H16C9.37 4 4 9.37 4 16v32c0 6.63 5.37 12 12 12h32c6.63 0 12-5.37 12-12V16c0-6.63-5.37-12-12-12zm-28 4h24v4H20V8zm4 32v12h-4V40c0-2.21 1.79-4 4-4h24c2.21 0 4 1.79 4 4v12h-4V40H24z"/></svg>`;
+        const figAsignacion = `<svg viewBox="0 0 64 64"><path d="M56 8H40V4a2 2 0 0 0-2-2H26a2 2 0 0 0-2 2v4H8a2 2 0 0 0-2 2v46a2 2 0 0 0 2 2h48a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM28 6h8v2h-8V6zm-8 44h-4v-4h4v4zm0-8h-4v-4h4v4zm0-8h-4v-4h4v4zm16 24H20v-4h16v4zm0-8H20v-4h16v4zm0-8H20v-4h16v4z"/></svg>`;
+        const figCampo = `<svg viewBox="0 0 64 64"><path d="m41.97 33.15-.36-.08-4.48-.96 3.19-14.89L25.33 34.09l4.13.88-3.04 14.19z"/><path d="m11.23 20.37-3.66 3.66 6.16 6.16 3.66-3.66zm15.65-4.43 3.1 3.1 3.86-3.86L30.74 12zm22.42-3.1-6.16-6.16L39.48 10.3l6.16 6.16zM5.57 32.19 2 35.76l6.16 6.16 3.57-3.57zm43.37-3.1 3.1 3.1 3.86-3.86L52 25.17zm12.3-15.65L55.08 7.28 51.22 11.14l6.16 6.16z"/></svg>`;
+        const figConcluido = `<svg viewBox="0 0 64 64"><path d="m32 2a30 30 0 1 0 30 30 30 30 0 0 0-30-30zm0 56a26 26 0 1 1 26-26 26 26 0 0 1-26 26zm14.12-38.12-18 18-10.12-10.12L14 31.76l14.12 14.12L50 21.76z"/></svg>`;
+        const iconBrain = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>`;
+
+        // Inicializar
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll('.panel, .filter-panel, .ticket-card').forEach((el, i) => {
+                el.style.opacity = '0'; el.style.transform = 'translateY(30px)'; el.style.transition = 'all 0.5s ease';
+                setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }, 60 * i);
+            });
+        });
+
+        // ==========================================
+        // 🗺️ CARGA MAESTRA DE GEOJSON
+        // ==========================================
+        function cargarGeoJSON(mapaDestino) {
+            // Contorno Atizapán
+            fetch('/static/geojson/atizapan.geojson')
+                .then(response => { if(response.ok) return response.json(); else console.warn('GeoJSON de Atizapán no encontrado'); })
+                .then(data => {
+                    if(data) {
+                        L.geoJSON(data, {
+                            style: {
+                                color: "#1E293B",    // COLOR DEL BORDE DEL MUNICIPIO (Ej. #1E293B o #FF0000)
+                                weight: 4,           // GROSOR
+                                fillOpacity: 0
+                            }
+                        }).addTo(mapaDestino);
+                    }
+                }).catch(e => console.log(e));
+
+            // Divisiones Colonias
+            fetch('/static/geojson/colonias_atizapan.geojson')
+                .then(response => { if(response.ok) return response.json(); else console.warn('GeoJSON de Colonias no encontrado'); })
+                .then(data => {
+                    if(data) {
+                        L.geoJSON(data, {
+                            style: {
+                                color: "#64748B",    // COLOR DE LAS LÍNEAS DE COLONIAS
+                                weight: 1,           // GROSOR
+                                fillColor: "#CBD5E1",// COLOR DE RELLENO
+                                fillOpacity: 0.05    // TRANSPARENCIA (0 a 1)
+                            }
+                        }).addTo(mapaDestino);
+                    }
+                }).catch(e => console.log(e));
+        }
+
+
+        var mapGen = L.map('mapa-general').setView([19.5542, -99.2458], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapGen);
+        
+        // Pinta el GeoJSON en el mapa principal de la consola
+        cargarGeoJSON(mapGen);
+        
+        var iconN = new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]});
+        var iconP = new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]});
+        var iconR = new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]});
+        var iconos = { 'Nuevo': iconN, 'En Proceso': iconP, 'Resuelto': iconR };
+
+        const puntosBD = {{ puntos_json|safe }};
+        puntosBD.forEach(function(p) {
+            var marker = L.marker([p.lat, p.lng], {icon: iconos[p.status] || iconN}).addTo(mapGen);
+            marker.bindTooltip(`<b>#${p.folio}</b><br>${p.asunto}`);
+            marker.on('click', () => iniciarLogica4D(p.folio));
+        });
+
+        var mapDet = null, markerDet = null;
+        const ROL_ACTUAL = "{{ rol_usuario }}";
+
+        // ============================================================================
+        // 🚀 MOTOR AJAX ROBUSTO (CERO ERRORES DE CONEXIÓN)
+        // ============================================================================
+        async function enviarFormularioAJAX(event, formElement) {
+            event.preventDefault();
+            let btn = formElement.querySelector('button[type="submit"]');
+            let txtOriginal = btn.innerText;
+            btn.innerText = "Procesando...";
+            btn.disabled = true;
+
+            let formData = new FormData(formElement);
+            
+            // EL TRUCO VITAL: Esto evita que Django nos redirija
+            formData.append('ajax_post', '1');
+
+            try {
+                // 1. Mandar datos por POST (Guardar)
+                let postResp = await fetch(window.location.href, { 
+                    method: 'POST', 
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (!postResp.ok) throw new Error("Error en POST");
+
+                // 2. Pedir datos frescos por GET
+                let getResp = await fetch(window.location.href + "?ajax=1", {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (!getResp.ok) throw new Error("Error en GET JSON");
+                
+                let data = await getResp.json();
+                
+                // 3. Actualizar memoria y recargar vista Modal
+                puntosBD.length = 0; 
+                puntosBD.push(...data.puntos_json);
+                
+                let folio = formData.get('folio_ticket');
+                iniciarLogica4D(folio, false); 
+
+            } catch (error) { 
+                console.error("Error capturado:", error);
+                alert("Hubo un problema de conexión al subir la información. Revisa tu red o la consola."); 
+            } finally { 
+                btn.innerText = txtOriginal; 
+                btn.disabled = false; 
+            }
+        }
+
+        // ============================================================================
+        // FUNCIÓN MÁGICA: Extraer la nota de la bitácora sin fallar
+        // ============================================================================
+        function extraerNota(bitacora, descTarea) {
+            if(!bitacora) return "";
+            let lineas = bitacora.split('\n');
+            for(let linea of lineas) {
+                // Buscamos el nombre de la tarea (ignoramos emojis en el parseo por seguridad)
+                if(linea.includes(`[${descTarea}]`)) {
+                    let partes = linea.split(': ');
+                    if(partes.length > 1) { 
+                        partes.shift(); // Quita el nombre del usuario
+                        return partes.join(': ').trim(); 
+                    }
+                }
+            }
+            return "";
+        }
+
+        // ============================================================================
+        // CEREBRO 4D FRONTEND (Construcción del Modal)
+        // ============================================================================
+        function iniciarLogica4D(folio, animarMapa = true) {
+            let ticket = puntosBD.find(p => p.folio === folio);
+            if (!ticket) return;
+
+            // Extraer el token de seguridad desde el form fantasma global
+            let csrfForm = document.getElementById('form-token-global');
+            let csrfInput = csrfForm.querySelector('[name=csrfmiddlewaretoken]');
+            let csrfToken = csrfInput ? csrfInput.value : '';
+
+            // INFO IZQ
+            if(document.getElementById('m-folio')) document.getElementById('m-folio').innerText = "#" + ticket.folio;
+            if(document.getElementById('m-nombre')) document.getElementById('m-nombre').innerText = ticket.nombre;
+            if(document.getElementById('m-gestor')) document.getElementById('m-gestor').innerText = ticket.gestor;
+            if(document.getElementById('m-asunto')) document.getElementById('m-asunto').innerText = ticket.asunto;
+            if(document.getElementById('m-notas-ciudadano')) document.getElementById('m-notas-ciudadano').innerText = ticket.notas || "Sin contexto.";
+            
+            let statusBadge = document.getElementById('m-status');
+            if(statusBadge) {
+                statusBadge.innerText = ticket.status;
+                statusBadge.className = "badge " + (ticket.status === 'Nuevo' ? 'bg-nuevo' : (ticket.status === 'En Proceso' ? 'bg-proceso' : 'bg-resuelto'));
+            }
+
+            let container = document.getElementById('control-4d-container');
+            container.innerHTML = ""; 
+
+            // ESTADOS LOGÍSTICA
+            let hasSubdirector = ticket.subdirector && ticket.subdirector !== 'Sin asignar';
+            let hasCoordinador = ticket.coordinador && ticket.coordinador !== 'Sin asignar';
+            let isResuelto = ticket.status === 'Resuelto';
+
+            let trackPercent = 0;
+            if (hasSubdirector || ticket.tareas.length > 0) trackPercent = 50; 
+            if (hasCoordinador) trackPercent = 100;
+            if (isResuelto) trackPercent = 100; 
+
+            // 1. CONSTRUIMOS EL CONTENIDO EN UNA SOLA VARIABLE (AQUÍ ESTABA EL ERROR)
+            let htmlContent = `
+                <div class="illus-tracker">
+                    <div class="illus-line-bg"></div>
+                    <div class="illus-line-fill" id="anim-illus-fill" style="width: 0%;"></div>
+                    
+                    <div class="illus-node completed">
+                        <div class="illus-figure-box">${figIngreso}</div>
+                        <div class="illus-label">Ingreso</div>
+                        <div class="illus-sublabel">${ticket.director !== 'Sin asignar' ? ticket.director : 'Dirección'}</div>
+                    </div>
+
+                    <div class="illus-node ${(hasSubdirector || ticket.tareas.length > 0) ? 'completed' : 'pending'}">
+                        <div class="illus-figure-box">${figAsignacion}</div>
+                        <div class="illus-label">Asignación</div>
+                        <div class="illus-sublabel">${hasSubdirector ? ticket.subdirector : 'Subdirección'}</div>
+                    </div>
+
+                    <div class="illus-node ${hasCoordinador ? 'completed' : 'pending'}">
+                        <div class="illus-figure-box">${figCampo}</div>
+                        <div class="illus-label">Campo</div>
+                        <div class="illus-sublabel">${hasCoordinador ? ticket.coordinador : 'Coordinación'}</div>
+                    </div>
+
+                    <div class="illus-node ${isResuelto ? 'finalizado' : 'pending'}">
+                        <div class="illus-figure-box">${figConcluido}</div>
+                        <div class="illus-label">Concluido</div>
+                    </div>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--border-delicate); margin: 30px 0;">
+            `;
+
+            // 2. DIAGRAMA VERTICAL DE TAREAS
+            htmlContent += `<h3 style="margin-bottom: 20px; color: var(--primary);">Secuencia de Operación</h3>`;
+            htmlContent += `<p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px; margin-top:-15px;">Diagrama de ejecución táctica en campo.</p>`;
+            htmlContent += `<div class="task-list">`;
+
+            if (ticket.tareas.length === 0) {
+                 htmlContent += `<p style="font-size:0.9rem; color:var(--text-muted); font-style:italic;">Aún no se han definido acciones operativas para este folio.</p>`;
+            }
+
+            ticket.tareas.forEach((tarea, index) => {
+                let nodeStatus = tarea.completada ? 'completed' : 'pending';
+                let notaEspecifica = extraerNota(ticket.notas_agente, tarea.descripcion);
+
+                htmlContent += `
+                    <div class="task-step">
+                        <div class="task-circle ${nodeStatus}">${tarea.completada ? '✓' : index + 1}</div>
+                        <div class="task-card ${nodeStatus}">
+                            <strong>${tarea.descripcion}</strong>
+                `;
+
+                if (tarea.completada) {
+                    htmlContent += `
+                        <span class="ejecutor-text">✓ Acción finalizada por: ${tarea.ejecutor}</span>
+                    `;
+                    if (tarea.evidencia_url) {
+                        htmlContent += `<a href="${tarea.evidencia_url}" target="_blank" class="btn btn-success" style="padding:6px 14px; font-size:0.75rem; border-radius:50px; text-decoration:none; display:inline-block; margin-top:5px;">VER EVIDENCIA FOTOGRÁFICA</a>`;
+                    }
+                    if (notaEspecifica) {
+                        htmlContent += `
+                            <div class="task-note-inline">
+                                <span class="icon">↳</span>
+                                <div><strong>Observación:</strong> ${notaEspecifica}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    if ((ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador') && ticket.status !== 'Resuelto') {
+                        htmlContent += `
+                            <form onsubmit="enviarFormularioAJAX(event, this)" style="border-top: 1px dashed var(--border-delicate); margin-top: 15px; padding-top: 15px;">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                                <input type="hidden" name="action_4d" value="completar_tarea">
+                                <input type="hidden" name="tarea_id" value="${tarea.id}">
+                                
+                                <div style="display:flex; flex-direction:column; gap:10px;">
+                                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-main); margin-top:15px; margin-bottom:5px;">Observaciones Operativas (Visibles en el diagrama):</label>
+                                    <input type="text" name="notas_agente" class="form-control" placeholder="Ej: Se instaló la pieza y se verificó." required style="padding:10px;">
+                                    
+                                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-main); margin-top:15px; margin-bottom:5px;">Subir Evidencia Fotográfica (Opcional):</label>
+                                    <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;">
+                                </div>
+                                <button type="submit" class="btn btn-success" style="padding:12px 20px; font-size:0.85rem; margin-top:15px; border-radius:50px; width:100%;">Finalizar Acción Táctica</button>
+                            </form>
+                        `;
+                    } else {
+                        htmlContent += `<div style="font-size:0.8rem; color:var(--gray-text); margin-top:8px;">⏱ En espera de ejecución operativa.</div>`;
+                    }
+                }
+                htmlContent += `</div></div>`;
+            });
+            htmlContent += `</div>`; 
+
+            // 3. FORMULARIOS EXTRAS Y MACHINE LEARNING
+            let htmlExtras = "";
+            // MODO DIRECTOR: VALIDAR O RECHAZAR TRÁMITE TERMINADO
+            if (ROL_ACTUAL === 'Director' && ticket.status === 'En Validación') {
+                htmlExtras += `
+                    <div style="background: #EFF6FF; border: 1px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px;">
+                        <h3 style="margin-top:0; color: #1D4ED8;">✅ Validación de Director Requerida</h3>
+                        <p style="font-size: 0.85rem; color: #3B82F6; margin-bottom:15px;">Revise las acciones ejecutadas. Puede aprobar o devolver el trámite a la cuadrilla.</p>
+                        
+                        <form onsubmit="enviarFormularioAJAX(event, this)">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" id="dir_action_${ticket.folio}" value="">
+                            
+                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Motivo de devolución (Escríbalo aquí si devuelve el trámite):</label>
+                                <input type="text" name="notas_agente" class="form-control" placeholder="Ej: Faltan firmas en el formato..." style="padding:10px;">
+                                
+                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Subir archivo de retroalimentación (Opcional):</label>
+                                <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;">
+                            </div>
+
+                            <div style="display:flex; gap:15px;">
+                                <button type="submit" onclick="document.getElementById('dir_action_${ticket.folio}').value='aprobar_ticket'" class="btn btn-success" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800;">APROBAR Y CERRAR</button>
+                                <button type="submit" onclick="document.getElementById('dir_action_${ticket.folio}').value='rechazar_ticket'" class="btn btn-danger-outline" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800; background:white;">DEVOLVER A CUADRILLA</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+            }
+
+            if (ROL_ACTUAL === 'Director' && ticket.tareas.length === 0 && ticket.status !== 'Resuelto') {
+                
+                let sugerenciaIA = puntosBD.find(p => p.asunto === ticket.asunto && p.tareas.length > 0 && p.folio !== ticket.folio);
+                let bloqueIA = "";
+                if(sugerenciaIA) {
+                    let tareasSugeridas = sugerenciaIA.tareas.map(t => t.descripcion).join('|');
+                    bloqueIA = `
+                        <div style="background: #FFFBEB; border: 1px solid #FCD34D; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <strong style="color:#b45309; display: flex; align-items: center; gap: 8px;">
+                                ${iconBrain} Patrón Inteligente Detectado
+                            </strong>
+                            <p style="font-size:0.85rem; margin:5px 0 10px 0; color:var(--text-main);">En casos anteriores de "${ticket.asunto}", se ejecutaron ${sugerenciaIA.tareas.length} pasos inicialmente.</p>
+                            <button type="button" class="btn btn-warning" style="padding: 8px 15px; font-size:0.75rem; width:100%; border-radius: 8px;" onclick="aplicarPlantillaIA('${tareasSugeridas}')">Aplicar Plantilla Automática</button>
+                        </div>
+                    `;
+                }
+
+                htmlExtras += `
+                    <div style="background: white; border: 1px dashed var(--primary); padding: 25px; border-radius: 12px; margin-top:10px;">
+                        <h3 style="margin-top:0; color:var(--primary);">Plan de Arranque</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Agregue las tareas iniciales y asigne una subdirección para activar el flujo.</p>
+                        
+                        ${bloqueIA}
+                        
+                        <form onsubmit="enviarFormularioAJAX(event, this)">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" value="director_plan">
+                            <input type="hidden" name="tareas_list" id="tareas_list_input">
+                            <div style="display:flex; gap:10px; margin-top:5px; margin-bottom:15px;">
+                                <input type="text" id="nueva_tarea_input" class="form-control" placeholder="Describa la primera acción...">
+                                <button type="button" class="btn btn-primary" onclick="agregarFilaTarea()">+</button>
+                            </div>
+                            <ul id="lista_visual_tareas" style="padding-left:20px; font-size:0.9rem; margin-bottom:20px; color:var(--primary);"></ul>
+                            <select name="subdirector_id" class="form-control" style="margin-top:5px;" required>
+                                <option value="">-- Turnar a Subdirección --</option>
+                                {% for emp in empleados_inferiores %}
+                                    <option value="{{ emp.id }}">{{ emp.username }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:20px;" onclick="prepararEnvioDirector()">Iniciar Ruta Operativa</button>
+                        </form>
+                    </div>
+                `;
+            }
+
+            if (ROL_ACTUAL === 'Subdirector' && ticket.status !== 'Resuelto') {
+                htmlExtras += `
+                    <div style="background: #F8FAFC; padding: 25px; border-radius: 12px; margin-top: 15px; border: 1px dashed var(--primary);">
+                        <b style="color: var(--primary); font-size: 0.9rem; text-transform: uppercase;">+ Añadir Nodo de Acción Adicional</b>
+                        <form onsubmit="enviarFormularioAJAX(event, this)" style="display:flex; gap:10px; margin-top:15px;">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" value="director_plan">
+                            <input type="text" name="tareas_list" class="form-control" placeholder="Ej. Mandar maquinaria pesada..." required>
+                            <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Añadir</button>
+                        </form>
+                    </div>
+                `;
+
+                if (!hasCoordinador) {
+                    htmlExtras += `
+                        <div style="background: white; padding: 25px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border-delicate); box-shadow: var(--shadow-card);">
+                            <h4 style="margin-top:0; color:var(--warning); font-size: 1.1rem;">Turnar a Operación de Campo</h4>
+                            <form onsubmit="enviarFormularioAJAX(event, this)">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                                <input type="hidden" name="action_4d" value="subdirector_turnar">
+                                <div style="display:flex; gap:10px; margin-top:15px;">
+                                    <select name="coordinador_id" class="form-control" style="padding:12px; font-size:0.9rem;" required>
+                                        <option value="">-- Seleccionar Cuadrilla en Campo --</option>
+                                        {% for emp in empleados_inferiores %}
+                                            <option value="{{ emp.id }}">{{ emp.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-warning" style="padding:12px 25px; font-size:0.9rem;">Turnar</button>
+                                </div>
+                            </form>
+                        </div>
+                    `;
+                }
+            }
+
+            // AQUI SE ASIGNA CORRECTAMENTE EL CONTENIDO (ESTE ERA EL BUG)
+            container.innerHTML = htmlContent + htmlExtras;
+            
+            document.getElementById('modal-detalle').style.display = 'flex';
+            
+            // Animación suave de la línea ilustrada
+            setTimeout(() => { 
+                let obj = document.getElementById('anim-illus-fill');
+                if(obj) obj.style.width = trackPercent + "%"; 
+            }, 100);
+            
+            // Re-renderizado exacto del Mapa CartoDB
+            if(animarMapa) {
+                var divC = document.getElementById('contenedor-mapa'), pSin = document.getElementById('m-sin-mapa');
+                if (ticket.lat && ticket.lng && ticket.lat !== 'None') {
+                    divC.style.display = 'block'; pSin.style.display = 'none';
+                    let lat = parseFloat(ticket.lat), lng = parseFloat(ticket.lng);
+                    setTimeout(() => {
+                        if (!mapDet) {
+                            mapDet = L.map('mapa-detalle').setView([lat, lng], 16);
+                            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDet);
+                            
+                            // 🗺️ Cargar geojson al mapa del modal
+                            cargarGeoJSON(mapDet);
+                            
+                            markerDet = L.marker([lat, lng], {icon: iconos[ticket.status] || iconN}).addTo(mapDet);
+                        } else { 
+                            mapDet.setView([lat, lng], 16); 
+                            markerDet.setLatLng([lat, lng]); 
+                            markerDet.setIcon(iconos[ticket.status] || iconN); 
+                        }
+                        mapDet.invalidateSize(); 
+                    }, 300); 
+                } else { divC.style.display = 'none'; pSin.style.display = 'block'; }
+            }
+        }
+
+        // Creador Tareas Init y Machine Learning Functions
+        let tareasArray = [];
+        function agregarFilaTarea() {
+            let input = document.getElementById('nueva_tarea_input');
+            let val = input.value.trim();
+            if(val) { tareasArray.push(val); renderizarListaTareas(); input.value = ""; }
+        }
+        function aplicarPlantillaIA(cadenaTareas) {
+            tareasArray = cadenaTareas.split('|');
+            renderizarListaTareas();
+        }
+        function renderizarListaTareas() {
+            let ul = document.getElementById('lista_visual_tareas'); ul.innerHTML = "";
+            tareasArray.forEach(t => { ul.innerHTML += `<li style="margin-bottom:5px;">✓ ${t}</li>`; });
+        }
+        function prepararEnvioDirector() { document.getElementById('tareas_list_input').value = tareasArray.join('|'); tareasArray = [];}
+
+        function cerrarModal() { document.getElementById('modal-detalle').style.display = 'none'; tareasArray = []; }
+        window.onclick = function(e) { if (e.target.classList.contains('modal-overlay')) cerrarModal(); }
+    </script>
+    
+    <form style="display:none;" id="form-token-global">{% csrf_token %}</form>
+</body>
+</html>
