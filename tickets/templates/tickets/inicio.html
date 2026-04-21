@@ -189,6 +189,9 @@
         .task-note-inline .note-title { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
         .task-note-inline .note-text { font-size: 0.9rem; color: var(--text-main); font-style: italic; line-height: 1.5; margin: 0; font-weight: 500;}
 
+        .btn-edit-mode { background: #F59E0B; color: white; padding: 8px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; }
+        .edit-field { display: none; margin-bottom: 10px; }
+        .view-field { display: block; }
     </style>
 </head>
 <body>
@@ -449,170 +452,262 @@
         // ============================================================================
         // CEREBRO 4D FRONTEND (VISTA LECTURA SÚPER ADMIN)
         // ============================================================================
-        function abrirDetalleTicket(folio) {
-            let ticket = puntosBD.find(p => p.folio === folio);
-            if (!ticket) return;
+function abrirDetalleTicket(folio) {
+    let ticket = puntosBD.find(p => p.folio === folio);
+    if (!ticket) return;
 
-            // 🛡️ EXTRACCIÓN SEGURA DEL TOKEN
-            let csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-            let csrfTokenSeguro = csrfInput ? csrfInput.value : '';
+    // 🛡️ EXTRACCIÓN SEGURA DEL TOKEN
+    let csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    let csrfTokenSeguro = csrfInput ? csrfInput.value : '';
 
-            document.getElementById('m-folio').innerText = "#" + ticket.folio;
-            document.getElementById('m-nombre').innerText = ticket.nombre;
-            if(document.getElementById('m-gestor')) document.getElementById('m-gestor').innerText = ticket.gestor;
-            document.getElementById('m-asunto').innerText = ticket.asunto;
-            document.getElementById('m-area').innerText = ticket.direccion;
-            document.getElementById('m-notas-ciudadano').innerText = ticket.notas || "Sin contexto adicional proporcionado.";
-            
-            let statusBadge = document.getElementById('m-status');
-            statusBadge.innerText = ticket.status;
-            statusBadge.className = "badge " + (ticket.status === 'Nuevo' ? 'bg-nuevo' : (ticket.status === 'En Proceso' ? 'bg-proceso' : (ticket.status === 'En Validación' ? 'bg-validacion' : 'bg-resuelto')));
+    document.getElementById('m-folio').innerText = "#" + ticket.folio;
 
-            let container = document.getElementById('control-4d-container');
-            
-            // CÁLCULOS EXACTOS PARA EL PROGRESS TRACK
-            let trackPercent = ticket.porcentaje;
-            let hasSubdirector = ticket.subdirector && ticket.subdirector !== 'Sin asignar';
-            let hasCoordinador = ticket.coordinador && ticket.coordinador !== 'Sin asignar';
-            let isResuelto = ticket.status === 'Resuelto';
-            
-            // 1. TIMELINE HORIZONTAL EXACTO E ILUSTRADO
-            let htmlContent = `
-                <div class="illus-tracker">
-                    <div class="illus-line-bg"></div>
-                    <div class="illus-line-fill" id="anim-illus-fill-admin" style="width: 0%;"></div>
-                    
-                    <div class="illus-node completed">
-                        <div class="illus-figure-box">${figIngreso}</div>
-                        <div class="illus-label">Apertura</div>
-                        <div class="illus-sublabel">${ticket.director !== 'Sin asignar' ? ticket.director : 'Dirección'}</div>
-                    </div>
+    // =====================================================================
+    // 🆕 INYECCIÓN DEL FORMULARIO DE EDICIÓN EN LA TARJETA IZQUIERDA
+    // =====================================================================
+    // Clonamos las opciones de tu buscador para no tener que usar variables globales
+    let opcionesColonias = document.querySelector('select[name="colonia_id"]') ? document.querySelector('select[name="colonia_id"]').innerHTML : '';
+    let opcionesDirecciones = document.querySelector('select[name="direccion_id"]') ? document.querySelector('select[name="direccion_id"]').innerHTML : '';
 
-                    <div class="illus-node ${hasSubdirector ? 'completed' : 'pending'}">
-                        <div class="illus-figure-box">${figAsignacion}</div>
-                        <div class="illus-label">Asignación</div>
-                        <div class="illus-sublabel">${hasSubdirector ? ticket.subdirector : 'Pendiente'}</div>
-                    </div>
+    let formHTML = `
+        <form id="form-editar-ticket" method="POST" action="{% url 'inicio' %}" style="margin:0;">
+            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
+            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+            <input type="hidden" name="action" value="editar_ticket">
 
-                    <div class="illus-node ${hasCoordinador ? (trackPercent > 0 ? 'completed' : 'active') : 'pending'}">
-                        <div class="illus-figure-box">${figCampo}</div>
-                        <div class="illus-label">Operación</div>
-                        <div class="illus-sublabel">${hasCoordinador ? ticket.coordinador : 'Pendiente'}</div>
-                    </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
+                <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Información General</b>
+                <button type="button" class="btn" style="background:#F59E0B; color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" id="btn-activar-edit" onclick="activarModoEdicion()">✏️ Editar Datos</button>
+            </div>
 
-                    <div class="illus-node ${isResuelto ? 'finalizado' : 'pending'}">
-                        <div class="illus-figure-box">${figConcluido}</div>
-                        <div class="illus-label">Resuelto</div>
-                    </div>
+            <p class="view-field" style="margin: 0 0 15px 0;"><span style="font-weight: 800; color: var(--text-title); font-size: 1.1rem;">${ticket.nombre}</span></p>
+            <div class="edit-field" style="display:none; margin-bottom:15px;">
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">NOMBRE Y APELLIDOS:</label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px;">
+                    <input type="text" name="nombre" class="form-control" value="${ticket.n_solo || ''}" placeholder="Nombre(s)" style="grid-column: span 2; padding:8px;">
+                    <input type="text" name="apellido_paterno" class="form-control" value="${ticket.ap || ''}" placeholder="Paterno" style="padding:8px;">
+                    <input type="text" name="apellido_materno" class="form-control" value="${ticket.am || ''}" placeholder="Materno" style="padding:8px;">
                 </div>
-                <hr style="border: 0; border-top: 1px solid var(--border-delicate); margin: 30px 0;">
+            </div>
+
+            <p class="view-field" style="margin: 0 0 15px 0; font-size:0.9rem; color:var(--text-main);">📧 ${ticket.email || 'Sin correo'} | 📞 ${ticket.tel || 'Sin tel'}</p>
+            <div class="edit-field" style="display:none; margin-bottom:15px;">
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">CONTACTO:</label>
+                <input type="email" name="email" class="form-control" value="${ticket.email || ''}" placeholder="Email" style="margin-top:5px; padding:8px;">
+                <input type="text" name="telefono" class="form-control" value="${ticket.tel || ''}" placeholder="Teléfono" style="margin-top:5px; padding:8px;">
+            </div>
+
+            <p class="view-field" style="margin: 0 0 15px 0; font-size:0.85rem;">📍 ${ticket.calle || ''} ${ticket.ext || ''}, Col. <b>${ticket.colonia}</b></p>
+            <div class="edit-field" style="display:none; margin-bottom:15px;">
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">UBICACIÓN FÍSICA:</label>
+                <input type="text" name="calle" class="form-control" value="${ticket.calle || ''}" placeholder="Calle" style="margin-top:5px; padding:8px;">
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <input type="text" name="numero_exterior" class="form-control" value="${ticket.ext || ''}" placeholder="Ext." style="padding:8px;">
+                    <input type="text" name="numero_interior" class="form-control" value="${ticket.int || ''}" placeholder="Int." style="padding:8px;">
+                </div>
+                <select name="colonia_id" class="form-control" style="margin-top:5px; padding:8px;">
+                    <option value="${ticket.col_id || ''}">MANTENER: ${ticket.colonia}</option>
+                    ${opcionesColonias}
+                </select>
+            </div>
+
+            <hr style="border:0; border-top:1px dashed var(--border-delicate); margin:15px 0;">
+
+            <p class="view-field" style="margin: 0 0 5px 0;"><b>Asunto:</b> ${ticket.asunto}</p>
+            <p class="view-field" style="margin: 0 0 15px 0;"><span style="font-size:0.75rem; background:#f1f5f9; padding:4px 8px; border-radius:5px; font-weight:700; color:var(--primary);">${ticket.direccion}</span></p>
+            
+            <div class="edit-field" style="display:none; margin-bottom:15px;">
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">ASUNTO Y ÁREA RESPONSABLE:</label>
+                <input type="text" name="asunto" class="form-control" value="${ticket.asunto || ''}" style="margin-top:5px; padding:8px;">
+                <select name="direccion_id" class="form-control" style="margin-top:5px; padding:8px;">
+                    <option value="${ticket.dir_id || ''}">MANTENER: ${ticket.direccion}</option>
+                    ${opcionesDirecciones}
+                </select>
+            </div>
+
+            <div class="view-field" style="margin-top:15px;">
+                <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Contexto Ciudadano</b>
+                <span style="display:block; font-size:0.9rem; font-style:italic; margin-top:5px; color:var(--text-main); line-height:1.5;">${ticket.notas || 'Sin contexto adicional proporcionado.'}</span>
+            </div>
+            <div class="edit-field" style="display:none; margin-bottom:15px;">
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">CONTEXTO CIUDADANO:</label>
+                <textarea name="notas" class="form-control" style="margin-top:5px; height:80px; padding:8px;">${ticket.notas || ''}</textarea>
+            </div>
+
+            <p class="view-field" style="margin: 15px 0 0 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Estado General</b> <br><span id="m-status-dinamico" class="badge" style="margin-top: 5px;">${ticket.status}</span></p>
+
+            <div class="edit-field" style="display:none; margin-top:25px; border-top:2px solid #FEF3C7; padding-top:15px;">
+                <button type="submit" class="btn btn-primary" style="width:100%; background:#10B981; border-radius:50px; border:none;">💾 Guardar Cambios</button>
+                <button type="button" class="btn btn-danger-outline" style="width:100%; margin-top:10px; border:none; border-radius:50px;" onclick="location.reload()">❌ Cancelar</button>
+            </div>
+        </form>
+    `;
+
+    // Localizamos la tarjeta izquierda y la reemplazamos con el nuevo HTML
+    let tarjetaIzq = document.querySelector('#modal-detalle-ticket .modal-content > div[style*="grid"] > div:first-child > div:first-child');
+    if(tarjetaIzq) {
+        tarjetaIzq.innerHTML = formHTML;
+        
+        // Aplicamos la clase de color al badge de estado dinámico
+        let statusBadge = document.getElementById('m-status-dinamico');
+        if(statusBadge) {
+            statusBadge.className = "badge " + (ticket.status === 'Nuevo' ? 'bg-nuevo' : (ticket.status === 'En Proceso' ? 'bg-proceso' : (ticket.status === 'En Validación' ? 'bg-validacion' : 'bg-resuelto')));
+        }
+    }
+    // =====================================================================
+
+    let container = document.getElementById('control-4d-container');
+    
+    // CÁLCULOS EXACTOS PARA EL PROGRESS TRACK
+    let trackPercent = ticket.porcentaje;
+    let hasSubdirector = ticket.subdirector && ticket.subdirector !== 'Sin asignar';
+    let hasCoordinador = ticket.coordinador && ticket.coordinador !== 'Sin asignar';
+    let isResuelto = ticket.status === 'Resuelto';
+    
+    // 1. TIMELINE HORIZONTAL EXACTO E ILUSTRADO
+    let htmlContent = `
+        <div class="illus-tracker">
+            <div class="illus-line-bg"></div>
+            <div class="illus-line-fill" id="anim-illus-fill-admin" style="width: 0%;"></div>
+            
+            <div class="illus-node completed">
+                <div class="illus-figure-box">${figIngreso}</div>
+                <div class="illus-label">Apertura</div>
+                <div class="illus-sublabel">${ticket.director !== 'Sin asignar' ? ticket.director : 'Dirección'}</div>
+            </div>
+
+            <div class="illus-node ${hasSubdirector ? 'completed' : 'pending'}">
+                <div class="illus-figure-box">${figAsignacion}</div>
+                <div class="illus-label">Asignación</div>
+                <div class="illus-sublabel">${hasSubdirector ? ticket.subdirector : 'Pendiente'}</div>
+            </div>
+
+            <div class="illus-node ${hasCoordinador ? (trackPercent > 0 ? 'completed' : 'active') : 'pending'}">
+                <div class="illus-figure-box">${figCampo}</div>
+                <div class="illus-label">Operación</div>
+                <div class="illus-sublabel">${hasCoordinador ? ticket.coordinador : 'Pendiente'}</div>
+            </div>
+
+            <div class="illus-node ${isResuelto ? 'finalizado' : 'pending'}">
+                <div class="illus-figure-box">${figConcluido}</div>
+                <div class="illus-label">Resuelto</div>
+            </div>
+        </div>
+        <hr style="border: 0; border-top: 1px solid var(--border-delicate); margin: 30px 0;">
+    `;
+
+    // 2. DIAGRAMA VERTICAL DE TAREAS (AUDITORÍA)
+    htmlContent += `<h3 style="margin-bottom: 25px; color: var(--text-title); font-weight:800; display:flex; justify-content:space-between; align-items:center;">Secuencia Operativa <span style="font-size:0.8rem; background:var(--primary-light); color:white; padding:4px 10px; border-radius:20px; font-weight:600;">Progreso: ${ticket.porcentaje}%</span></h3>`;
+    htmlContent += `<div class="task-list">`;
+
+    if (ticket.tareas.length === 0) {
+         htmlContent += `<div style="background:#F8FAFC; border: 1px dashed var(--gray-text); padding:20px; border-radius:12px; text-align:center;"><p style="font-size:0.9rem; color:var(--text-muted); font-style:italic; margin:0;">Aún no se han definido acciones operativas para este folio.</p></div>`;
+    }
+
+    ticket.tareas.forEach((tarea, index) => {
+        let nodeStatus = tarea.completada ? 'completed' : 'pending';
+        let notaEspecifica = extraerNota(ticket.observaciones, tarea.descripcion); 
+
+        htmlContent += `
+            <div class="task-step">
+                <div class="task-circle ${nodeStatus}">${tarea.completada ? '✓' : index + 1}</div>
+                <div class="task-card ${nodeStatus}">
+                    <strong>${tarea.descripcion}</strong>
+        `;
+
+        if (tarea.completada) {
+            htmlContent += `
+                <div class="ejecutor-text">
+                    <svg style="width:16px; height:16px; fill:var(--success);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    <span>Acción finalizada por <b>${tarea.ejecutor}</b> • ⏱ ${tarea.tiempo}</span>
+                </div>
             `;
-
-            // 2. DIAGRAMA VERTICAL DE TAREAS (AUDITORÍA)
-            htmlContent += `<h3 style="margin-bottom: 25px; color: var(--text-title); font-weight:800; display:flex; justify-content:space-between; align-items:center;">Secuencia Operativa <span style="font-size:0.8rem; background:var(--primary-light); color:white; padding:4px 10px; border-radius:20px; font-weight:600;">Progreso: ${ticket.porcentaje}%</span></h3>`;
-            htmlContent += `<div class="task-list">`;
-
-            if (ticket.tareas.length === 0) {
-                 htmlContent += `<div style="background:#F8FAFC; border: 1px dashed var(--gray-text); padding:20px; border-radius:12px; text-align:center;"><p style="font-size:0.9rem; color:var(--text-muted); font-style:italic; margin:0;">Aún no se han definido acciones operativas para este folio.</p></div>`;
+            if (tarea.evidencia_url) {
+                htmlContent += `<a href="${tarea.evidencia_url}" target="_blank" class="btn-pill">Ver Evidencia Fotográfica</a>`;
             }
-
-            ticket.tareas.forEach((tarea, index) => {
-                let nodeStatus = tarea.completada ? 'completed' : 'pending';
-                let notaEspecifica = extraerNota(ticket.observaciones, tarea.descripcion); 
-
+            if (notaEspecifica) {
                 htmlContent += `
-                    <div class="task-step">
-                        <div class="task-circle ${nodeStatus}">${tarea.completada ? '✓' : index + 1}</div>
-                        <div class="task-card ${nodeStatus}">
-                            <strong>${tarea.descripcion}</strong>
-                `;
-
-                if (tarea.completada) {
-                    htmlContent += `
-                        <div class="ejecutor-text">
-                            <svg style="width:16px; height:16px; fill:var(--success);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                            <span>Acción finalizada por <b>${tarea.ejecutor}</b> • ⏱ ${tarea.tiempo}</span>
-                        </div>
-                    `;
-                    if (tarea.evidencia_url) {
-                        htmlContent += `<a href="${tarea.evidencia_url}" target="_blank" class="btn-pill">Ver Evidencia Fotográfica</a>`;
-                    }
-                    if (notaEspecifica) {
-                        htmlContent += `
-                            <div class="task-note-inline">
-                                <span class="note-title">Observación Operativa</span>
-                                <p class="note-text">"${notaEspecifica}"</p>
-                            </div>
-                        `;
-                    }
-                } else {
-                    htmlContent += `<div style="font-size:0.8rem; color:var(--gray-text); margin-top:8px; font-weight:500;"> ⏳ Pendiente de ejecución</div>`;
-                }
-                htmlContent += `</div></div>`;
-            });
-            htmlContent += `</div>`; 
-
-            // 3. BOTÓN DE APROBACIÓN O RECHAZO PARA EL ADMIN SÚPREMO
-            if (ticket.status === 'En Validación') {
-                htmlContent += `
-                    <div style="background: #EFF6FF; border: 1px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px;">
-                        <h3 style="margin-top:0; color: #1D4ED8;">✅ Validación Requerida</h3>
-                        <p style="font-size: 0.85rem; color: #3B82F6; margin-bottom:15px;">La cuadrilla ha finalizado las acciones. Puede aprobar el cierre o devolver el trámite a campo.</p>
-                        
-                        <form method="POST" action="{% url 'inicio' %}" enctype="multipart/form-data">
-                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
-                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
-                            <input type="hidden" name="action" id="admin_action_${ticket.folio}" value="">
-                            
-                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Observaciones / Motivo de rechazo (Obligatorio si devuelve):</label>
-                                <input type="text" name="notas_agente" class="form-control" placeholder="Ej: La pieza instalada no es la correcta..." style="padding:10px;">
-                                
-                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Evidencia adjunta (Opcional):</label>
-                                <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;">
-                            </div>
-
-                            <div style="display:flex; gap:15px;">
-                                <button type="submit" onclick="document.getElementById('admin_action_${ticket.folio}').value='aprobar_ticket'" class="btn btn-success" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800;">APROBAR (100%)</button>
-                                <button type="submit" onclick="document.getElementById('admin_action_${ticket.folio}').value='rechazar_ticket'" class="btn btn-danger-outline" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800; background:white;">DEVOLVER TRÁMITE</button>
-                            </div>
-                        </form>
+                    <div class="task-note-inline">
+                        <span class="note-title">Observación Operativa</span>
+                        <p class="note-text">"${notaEspecifica}"</p>
                     </div>
                 `;
             }
-
-            container.innerHTML = htmlContent;
-            document.getElementById('modal-detalle-ticket').style.display = 'flex';
-            
-            // Animamos la barra verde de progreso
-            setTimeout(() => { 
-                let obj = document.getElementById('anim-illus-fill-admin');
-                if(obj) obj.style.width = trackPercent + "%"; 
-            }, 100);
-            
-            // Renderizamos el mapa
-            var divC = document.getElementById('contenedor-mapa');
-            if (ticket.lat !== 'None' && ticket.lng !== 'None') {
-                divC.style.display = 'block'; 
-                let lat = parseFloat(ticket.lat), lng = parseFloat(ticket.lng);
-                setTimeout(() => {
-                    if (!mapDetalle) {
-                        mapDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDetalle);
-                        
-                        // Cargamos el GeoJSON también para el mapa del modal
-                        cargarGeoJSON(mapDetalle);
-
-                        markerDetalle = L.marker([lat, lng], {icon: iconos[ticket.status] || iconos['Nuevo']}).addTo(mapDetalle);
-                    } else { 
-                        mapDetalle.setView([lat, lng], 16); 
-                        markerDetalle.setLatLng([lat, lng]); 
-                        markerDetalle.setIcon(iconos[ticket.status] || iconos['Nuevo']); 
-                    }
-                    mapDetalle.invalidateSize(); 
-                }, 300); 
-            } else { divC.style.display = 'none'; }
+        } else {
+            htmlContent += `<div style="font-size:0.8rem; color:var(--gray-text); margin-top:8px; font-weight:500;"> ⏳ Pendiente de ejecución</div>`;
         }
+        htmlContent += `</div></div>`;
+    });
+    htmlContent += `</div>`; 
+
+    // 3. BOTÓN DE APROBACIÓN O RECHAZO PARA EL ADMIN SÚPREMO
+    if (ticket.status === 'En Validación') {
+        htmlContent += `
+            <div style="background: #EFF6FF; border: 1px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px;">
+                <h3 style="margin-top:0; color: #1D4ED8;">✅ Validación Requerida</h3>
+                <p style="font-size: 0.85rem; color: #3B82F6; margin-bottom:15px;">La cuadrilla ha finalizado las acciones. Puede aprobar el cierre o devolver el trámite a campo.</p>
+                
+                <form method="POST" action="{% url 'inicio' %}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
+                    <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                    <input type="hidden" name="action" id="admin_action_${ticket.folio}" value="">
+                    
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                        <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Observaciones / Motivo de rechazo (Obligatorio si devuelve):</label>
+                        <input type="text" name="notas_agente" class="form-control" placeholder="Ej: La pieza instalada no es la correcta..." style="padding:10px;">
+                        
+                        <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Evidencia adjunta (Opcional):</label>
+                        <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;">
+                    </div>
+
+                    <div style="display:flex; gap:15px;">
+                        <button type="submit" onclick="document.getElementById('admin_action_${ticket.folio}').value='aprobar_ticket'" class="btn btn-success" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800; border:none; cursor:pointer;">APROBAR (100%)</button>
+                        <button type="submit" onclick="document.getElementById('admin_action_${ticket.folio}').value='rechazar_ticket'" class="btn btn-danger-outline" style="flex:1; padding: 12px; border-radius: 50px; font-weight:800; background:white; cursor:pointer;">DEVOLVER TRÁMITE</button>
+                    </div>
+                </form>
+            </div>
+        `;
+    }
+
+    container.innerHTML = htmlContent;
+    document.getElementById('modal-detalle-ticket').style.display = 'flex';
+    
+    // Animamos la barra verde de progreso
+    setTimeout(() => { 
+        let obj = document.getElementById('anim-illus-fill-admin');
+        if(obj) obj.style.width = trackPercent + "%"; 
+    }, 100);
+    
+    // Renderizamos el mapa
+    var divC = document.getElementById('contenedor-mapa');
+    if (ticket.lat !== 'None' && ticket.lng !== 'None') {
+        divC.style.display = 'block'; 
+        let lat = parseFloat(ticket.lat), lng = parseFloat(ticket.lng);
+        setTimeout(() => {
+            if (!mapDetalle) {
+                mapDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDetalle);
+                
+                // Cargamos el GeoJSON también para el mapa del modal
+                if(typeof cargarGeoJSON === "function") cargarGeoJSON(mapDetalle);
+
+                markerDetalle = L.marker([lat, lng], {icon: iconos[ticket.status] || iconos['Nuevo']}).addTo(mapDetalle);
+            } else { 
+                mapDetalle.setView([lat, lng], 16); 
+                markerDetalle.setLatLng([lat, lng]); 
+                markerDetalle.setIcon(iconos[ticket.status] || iconos['Nuevo']); 
+            }
+            mapDetalle.invalidateSize(); 
+        }, 300); 
+    } else { divC.style.display = 'none'; }
+}
+
+// 🛠️ Función auxiliar obligatoria para activar la vista de edición
+function activarModoEdicion() {
+    document.querySelectorAll('.view-field').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.edit-field').forEach(el => el.style.display = 'block');
+    document.getElementById('btn-activar-edit').style.display = 'none';
+}
 
         function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
         function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }

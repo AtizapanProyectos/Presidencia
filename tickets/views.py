@@ -42,11 +42,10 @@ def inicio(request):
     # --- PROCESAMIENTO DE ACCIONES (POST) ---
     if request.method == 'POST':
         folio_ticket = request.POST.get('folio_ticket')
-        action = request.POST.get('action') # Capturamos la acción (aprobar o reasignar)
+        action = request.POST.get('action') # Capturamos la acción
         
         if folio_ticket:
             # ESCENARIO A: EL ADMIN APRUEBA EL TICKET DEFINITIVAMENTE
-# ESCENARIO A: EL ADMIN APRUEBA EL TICKET DEFINITIVAMENTE
             if action == 'aprobar_ticket':
                 try:
                     ticket_aprobar = TicketAyuda.objects.get(folio=folio_ticket)
@@ -59,7 +58,7 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-            # ESCENARIO B: EL ADMIN DEVUELVE EL TICKET (NUEVO)
+            # ESCENARIO B: EL ADMIN DEVUELVE EL TICKET
             elif action == 'rechazar_ticket':
                 try:
                     ticket_rechazar = TicketAyuda.objects.get(folio=folio_ticket)
@@ -76,7 +75,8 @@ def inicio(request):
                     ticket_rechazar.status = 'En Proceso'
                     total_t = ticket_rechazar.tareas.count()
                     hechas_t = ticket_rechazar.tareas.filter(completada=True).count()
-                    ticket_rechazar.porcentaje_avance = int((hechas_t / total_t) * 100)
+                    if total_t > 0:
+                        ticket_rechazar.porcentaje_avance = int((hechas_t / total_t) * 100)
                     
                     nota_previa = ticket_rechazar.observaciones if ticket_rechazar.observaciones else ''
                     ticket_rechazar.observaciones = f"{nota_previa}\n\n[SISTEMA]: 🔴 Trámite devuelto por Admin con observaciones."
@@ -90,7 +90,36 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-            # ESCENARIO B: REASIGNACIÓN DE DIRECTOR (Lógica que ya tenías)
+            # ESCENARIO C: EL ADMIN EDITA LA INFORMACIÓN (EL NUEVO SUPERPODER)
+            elif action == 'editar_ticket':
+                try:
+                    t = TicketAyuda.objects.get(folio=folio_ticket)
+                    t.nombre = request.POST.get('nombre')
+                    t.apellido_paterno = request.POST.get('apellido_paterno')
+                    t.apellido_materno = request.POST.get('apellido_materno')
+                    t.email = request.POST.get('email')
+                    t.telefono = request.POST.get('telefono')
+                    t.asunto = request.POST.get('asunto')
+                    t.notas = request.POST.get('notas')
+                    t.calle = request.POST.get('calle')
+                    t.numero_exterior = request.POST.get('numero_exterior')
+                    t.numero_interior = request.POST.get('numero_interior')
+                    
+                    # Actualización de llaves foráneas (Selects)
+                    col_id = request.POST.get('colonia_id')
+                    if col_id: 
+                        t.colonia_id = col_id
+                    
+                    dir_id = request.POST.get('direccion_id')
+                    if dir_id: 
+                        t.direccion_id = dir_id
+                    
+                    t.save()
+                except TicketAyuda.DoesNotExist:
+                    pass
+                return redirect('inicio')
+
+            # ESCENARIO D: REASIGNACIÓN DE DIRECTOR
             else:
                 nuevo_agente_id = request.POST.get('nuevo_agente')
                 try:
@@ -158,10 +187,22 @@ def inicio(request):
             })
 
         tickets_data.append({
-            'folio': p.folio, 'lat': p.latitud if p.latitud else 'None', 'lng': p.longitud if p.longitud else 'None',
-            'status': p.status, 'asunto': p.asunto, 'nombre': p.nombre,
-            'email': p.email, 
+            'folio': p.folio, 
+            'lat': p.latitud if p.latitud else 'None', 
+            'lng': p.longitud if p.longitud else 'None',
+            'status': p.status, 
+            'asunto': p.asunto, 
             'nombre': p.nombre_completo,
+            'n_solo': p.nombre, 
+            'ap': p.apellido_paterno, 
+            'am': p.apellido_materno if p.apellido_materno else '',
+            'email': p.email if p.email else '', 
+            'tel': p.telefono if p.telefono else '',
+            'calle': p.calle if p.calle else '', 
+            'ext': p.numero_exterior if p.numero_exterior else '', 
+            'int': p.numero_interior if p.numero_interior else '',
+            'col_id': p.colonia.id if p.colonia else '',
+            'dir_id': p.direccion.id if p.direccion else '',
             'colonia': p.colonia.nombre_colonia if p.colonia else 'N/A', 
             'direccion': p.direccion.nombre_direccion if p.direccion else 'N/A',
             'fecha': p.fecha.strftime('%d/%m/%Y'),
@@ -196,12 +237,11 @@ def inicio(request):
         'colonias': CatColonia.objects.all().order_by('nombre_colonia'), 
         'direcciones': CatDireccion.objects.all().order_by('nombre_direccion'),
         'f_q': q, 'f_fecha_inicio': fecha_inicio, 'f_fecha_fin': fecha_fin, 
-        'f_colonia_id': int(colonia_id) if (colonia_id and colonia_id.isdigit()) else '',
-        'f_direccion_id': int(direccion_id) if (direccion_id and direccion_id.isdigit()) else '',
+        'f_colonia_id': int(colonia_id) if (colonia_id and str(colonia_id).isdigit()) else '',
+        'f_direccion_id': int(direccion_id) if (direccion_id and str(direccion_id).isdigit()) else '',
         'agentes_disponibles': User.objects.filter(perfilagente__rol='Director').select_related('perfilagente__direccion_asignada')
     }
     return render(request, 'tickets/inicio.html', contexto)
-
 
 
 @login_required(login_url='/')
