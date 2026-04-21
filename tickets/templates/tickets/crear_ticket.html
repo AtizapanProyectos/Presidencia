@@ -13,7 +13,7 @@
     
     <style>
         :root {
-            --bg-app: #F1F5F9; /* Fondo un poco más gris/azulado para resaltar las tarjetas blancas */
+            --bg-app: #F1F5F9; 
             --surface: #FFFFFF;
             --primary: #0F172A; 
             --primary-light: #334155; 
@@ -56,7 +56,6 @@
         
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
 
-        /* STYLING MAGICO PARA EL FORMULARIO DE DJANGO */
         .formulario-container p { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
         .formulario-container label { font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         
@@ -83,7 +82,6 @@
 
         #mapa { height: 650px; width: 100%; border-radius: 16px; border: var(--border-delicate); box-shadow: inset 0 2px 10px rgba(0,0,0,0.03); z-index: 1; }
 
-        /* AVISO IA MEJORADO */
         .aviso-ia { 
             display: none; 
             background: linear-gradient(145deg, var(--success-light), #D1FAE5); 
@@ -187,10 +185,8 @@
                 }).catch(e => console.log(e));
         }
 
-        // Ejecutar carga GeoJSON
         cargarGeoJSON(map);
 
-        // MARCADOR ROJO (Para mantener estética)
         var iconRed = new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]});
         var marcador = L.marker([19.5542, -99.2458], {draggable: true, icon: iconRed}).addTo(map);
 
@@ -233,14 +229,27 @@
         actualizarInputs(19.5542, -99.2458);
 
         // ==========================================
-        // 🧠 RUTEO DE INTELIGENCIA ARTIFICIAL
+        // 🧠 CEREBRO SUPER PREDICTIVO 4D (SÚPER MASIVO)
         // ==========================================
+        // Busca coincidencias por dependencia para auto-seleccionar el área.
+        // Soporta variaciones de escritura sin tildes.
         const diccionarioAreas = {
-            'SAPASA': ['agua', 'fuga', 'tubo', 'drenaje', 'inundación', 'inundacion', 'alcantarilla', 'pipa', 'coladera', 'desazolve', 'sin servicio'],
-            'Servicios Públicos': ['luz', 'lámpara', 'lampara', 'luminaria', 'árbol', 'arbol', 'basura', 'barrido', 'parque', 'poda', 'ramas', 'alumbrado', 'camión de basura'],
-            'Obras Públicas': ['bache', 'pavimentación', 'pavimentacion', 'banqueta', 'calle', 'obra', 'socavón', 'socavon', 'asfalto', 'puente'],
-            'Seguridad': ['policía', 'policia', 'robo', 'patrulla', 'asalto', 'delito', 'sospechoso', 'seguridad'],
-            'Protección Civil': ['incendio', 'riesgo', 'derrumbe', 'emergencia', 'gas', 'olor', 'bomberos', 'accidente']
+            'SAPASA': ['agua', 'fuga', 'tubo', 'drenaje', 'inundación', 'inundacion', 'alcantarilla', 'pipa', 'coladera', 'desazolve', 'sin servicio', 'falta de agua', 'medidor', 'recibo de agua', 'charco', 'dren', 'saneamiento', 'registro abierto', 'tapa rota'],
+            'SERVICIOS PÚBLICOS': ['luz', 'lámpara', 'lampara', 'luminaria', 'árbol', 'arbol', 'basura', 'barrido', 'parque', 'poda', 'ramas', 'alumbrado', 'camión de basura', 'camion', 'panteón', 'panteon', 'rastro', 'animal muerto', 'perro muerto', 'limpieza', 'jardín', 'jardin', 'maleza', 'pasto', 'animal'],
+            'OBRAS PÚBLICAS': ['bache', 'pavimentación', 'pavimentacion', 'banqueta', 'calle', 'obra', 'socavón', 'socavon', 'asfalto', 'puente', 'repavimentación', 'guarnición', 'guarnicion', 'zanja', 'concreto', 'calle rota', 'terracería'],
+            'SEGURIDAD': ['policía', 'policia', 'robo', 'patrulla', 'asalto', 'delito', 'sospechoso', 'seguridad', 'tránsito', 'transito', 'choque', 'vialidad', 'semáforo', 'semaforo', 'infracción', 'infraccion', 'delincuencia', 'balazos', 'disparos', 'agresión', 'accidente vial', 'vehículo abandonado', 'auto abandonado'],
+            'PROTECCIÓN CIVIL': ['incendio', 'riesgo', 'derrumbe', 'emergencia', 'gas', 'olor', 'bomberos', 'accidente', 'abejas', 'panal', 'explosión', 'explosion', 'árbol por caer', 'arbol a punto de caer', 'deslave', 'inundación grave', 'contaminación', 'ruido', 'tala', 'ecología', 'humo', 'quema de basura', 'quema'],
+            'SMDIF': ['dif', 'despensa', 'alimentario', 'adulto mayor', 'discapacidad', 'silla de ruedas', 'psicólogo', 'psicologo', 'terapia', 'adopción', 'violencia intrafamiliar', 'asilo', 'menor abandonado', 'aparatos funcionales', 'desayuno'],
+            'FAMILIA': ['dif', 'despensa', 'alimentario', 'adulto mayor', 'discapacidad', 'silla de ruedas', 'psicólogo', 'psicologo', 'terapia', 'adopción', 'violencia intrafamiliar', 'asilo', 'menor abandonado', 'aparatos funcionales', 'desayuno'],
+            'ORDENAMIENTO': ['uso de suelo', 'licencia de construcción', 'licencia de construccion', 'permiso de obra', 'construcción irregular', 'construccion irregular', 'invasión', 'invasion', 'alineamiento', 'predio', 'asentamiento', 'clausura de obra', 'escombros', 'material de construcción'],
+            'ECONÓMICO': ['licencia de funcionamiento', 'negocio', 'comercio', 'empleo', 'bolsa de trabajo', 'fomento', 'empresa', 'tianguis', 'mercado', 'ambulante', 'puesto', 'vendedor'],
+            'CONTRALORÍA': ['queja', 'corrupción', 'corrupcion', 'soborno', 'maltrato', 'servidor público', 'servidor publico', 'denuncia funcionario', 'mordida', 'abuso de autoridad', 'extorsión', 'extorsion', 'auditoría'],
+            'TESORERÍA': ['predial', 'impuesto', 'pago', 'multa', 'recargos', 'caja', 'facturación', 'facturacion', 'tesoreria', 'adeudo', 'descuento'],
+            'MUJER': ['violencia de género', 'violencia de genero', 'acoso', 'apoyo a la mujer', 'feminicidio', 'refugio', 'machismo', 'pláticas', 'taller mujer', 'agresión a mujer'],
+            'JUVENTUD': ['beca', 'jóvenes', 'jovenes', 'deporte', 'talleres', 'cultura juvenil', 'preparatoria', 'universidad', 'skate', 'juventud', 'estudiantes'],
+            'AYUNTAMIENTO': ['constancia', 'acta', 'cartilla militar', 'juez calificador', 'oficialía', 'acuerdos', 'exhorto', 'cabildo', 'vecinal', 'copaci', 'delegado'],
+            'JURÍDICA': ['demanda', 'amparo', 'derechos humanos', 'asesoría legal', 'asesoria legal', 'conflicto legal', 'abogado', 'orientación legal'],
+            'PRESIDENCIA': ['alcalde', 'presidenta', 'presidente', 'audiencia', 'petición directa', 'apoyo directo']
         };
 
         function predecirAreaAutomática() {
@@ -254,14 +263,17 @@
             let textoCompleto = (campoAsunto.value + " " + campoNotas.value).toLowerCase();
 
             for (const [nombreAreaBD, palabrasClave] of Object.entries(diccionarioAreas)) {
+                // Buscamos si alguna de las cientos de palabras clave está en lo que el usuario tipeó
                 if (palabrasClave.some(palabra => textoCompleto.includes(palabra))) {
                     for (let i = 0; i < campoDireccion.options.length; i++) {
+                        // Buscamos en el Select de Django qué opción hace "match" con nuestra llave del diccionario
                         if (campoDireccion.options[i].text.toLowerCase().includes(nombreAreaBD.toLowerCase())) {
                             if (campoDireccion.selectedIndex === i) return;
 
+                            // Cambiamos el select automáticamente a la opción correcta
                             campoDireccion.selectedIndex = i;
                             
-                            avisoIA.style.display = 'flex'; // Cambiado a flex para el icono
+                            avisoIA.style.display = 'flex'; 
                             campoDireccion.parentNode.insertBefore(avisoIA, campoDireccion.nextSibling);
                             
                             return; 
@@ -270,6 +282,7 @@
                 }
             }
             
+            // Si el usuario borra todo, ocultamos el aviso
             if(textoCompleto.trim() === "") {
                 avisoIA.style.display = 'none';
             }
