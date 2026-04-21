@@ -50,6 +50,7 @@ class TicketAyuda(models.Model):
     numero_exterior = models.CharField(max_length=50, blank=True, null=True, verbose_name="Núm. Exterior")
     numero_interior = models.CharField(max_length=50, blank=True, null=True, verbose_name="Núm. Interior (Opcional)")
     
+    email = models.EmailField(max_length=150, blank=True, null=True, verbose_name="Correo Electrónico")
     telefono = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.ForeignKey(CatDireccion, on_delete=models.SET_NULL, null=True, verbose_name="Dependencia")
     observaciones = models.TextField(blank=True, null=True)

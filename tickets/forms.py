@@ -29,7 +29,8 @@ class TicketForm(forms.ModelForm):
             'nombre', 'apellido_paterno', 'apellido_materno', 
             'asunto', 'notas', 'colonia', 
             'calle', 'numero_exterior', 'numero_interior', 
-            'telefono', 'direccion', 'gestor', 'latitud', 'longitud'
+            'telefono', 'direccion', 'gestor', 'latitud', 'longitud',
+            'email'  # 👈 AGREGADO AQUÍ
         ]
         widgets = {
             'latitud': forms.TextInput(attrs={'readonly': 'readonly'}), 

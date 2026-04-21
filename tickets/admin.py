@@ -32,7 +32,7 @@ class PerfilAgenteAdmin(admin.ModelAdmin):
 # -----------------------------------------------------
 class TareaTicketInline(admin.TabularInline):
     model = TareaTicket
-    extra = 0 # No agregar filas vacías por defecto
+    extra = 0
     readonly_fields = ('fecha_creacion', 'fecha_completada', 'ejecutor')
     fields = ('descripcion', 'completada', 'ejecutor', 'evidencia_tarea', 'fecha_creacion', 'fecha_completada')
 
@@ -47,31 +47,29 @@ class TareaTicketAdmin(admin.ModelAdmin):
 # -----------------------------------------------------
 @admin.register(TicketAyuda)
 class TicketAyudaAdmin(admin.ModelAdmin):
-    # Usamos la nueva función para mostrar el nombre completo en la tabla
     list_display = ('folio', 'fecha', 'mostrar_nombre_completo', 'asunto', 'direccion', 'status', 'porcentaje_avance')
-    
     list_filter = ('status', 'direccion', 'colonia', 'fecha')
     
-    # Actualizamos el buscador con los nuevos campos
-    search_fields = ('folio', 'nombre', 'apellido_paterno', 'apellido_materno', 'asunto', 'notas', 'telefono', 'calle')
+    # 📝 Agregamos 'email' al buscador para localizar tickets por correo
+    search_fields = ('folio', 'nombre', 'apellido_paterno', 'apellido_materno', 'email', 'asunto', 'notas', 'telefono', 'calle')
     
     list_editable = ('status',) 
     date_hierarchy = 'fecha'
     inlines = [TareaTicketInline]
     
-    # Reorganizamos los fieldsets de forma profesional
     fieldsets = (
         ('Información del Ciudadano', {
             'fields': (
                 'folio', 
-                ('nombre', 'apellido_paterno', 'apellido_materno'), # Los agrupa en una fila
-                'telefono', 'gestor'
+                ('nombre', 'apellido_paterno', 'apellido_materno'),
+                ('email', 'telefono'), # 📧 Ahora el correo aparece junto al teléfono
+                'gestor'
             )
         }),
         ('Ubicación Física', {
             'fields': (
                 'colonia', 
-                ('calle', 'numero_exterior', 'numero_interior') # Los agrupa en una fila
+                ('calle', 'numero_exterior', 'numero_interior')
             )
         }),
         ('Detalles del Reporte', {
@@ -85,7 +83,6 @@ class TicketAyudaAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Función que renderiza la propiedad del modelo en el list_display
     def mostrar_nombre_completo(self, obj):
         return obj.nombre_completo
     mostrar_nombre_completo.short_description = 'Ciudadano'
