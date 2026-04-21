@@ -110,7 +110,7 @@
 
     <div class="top-bar">
         <div>
-            <h1>📝 Módulo de Captura Ciudadana</h1>
+            <h1> Módulo de Captura Ciudadana</h1>
             <p class="instrucciones">El Sistema de Gestión generará un folio inmutable al guardar el expediente.</p>
         </div>
         <a href="{% url 'inicio' %}" class="btn btn-cancelar">⬅ Cancelar y Volver</a>
@@ -119,7 +119,7 @@
     <div class="dashboard-grid">
         
         <div class="panel formulario-container">
-            <h3>📋 Datos del Solicitante y Afectación</h3>
+            <h3> Datos del Solicitante y Afectación</h3>
             <form method="POST">
                 {% csrf_token %}
                 
@@ -135,7 +135,7 @@
         </div>
 
         <div class="panel">
-            <h3>🗺️ Levantamiento Geográfico</h3>
+            <h3> Levantamiento Geográfico</h3>
             <p class="instrucciones" style="margin-bottom: 20px;">Al seleccionar la colonia, el mapa se centrará. Mueva el pin rojo para exactitud.</p>
             <div id="mapa"></div>
         </div>
