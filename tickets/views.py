@@ -118,7 +118,7 @@ def inicio(request):
     colonia_id = request.GET.get('colonia_id', '')
     direccion_id = request.GET.get('direccion_id', '') 
 
-    if q: tickets = tickets.filter(Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(asunto__icontains=q) | Q(notas__icontains=q))
+    if q: tickets = tickets.filter(Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(apellido_paterno__icontains=q) | Q(apellido_materno__icontains=q) | Q(asunto__icontains=q) | Q(notas__icontains=q) | Q(calle__icontains=q))
     if fecha_inicio: tickets = tickets.filter(fecha__gte=fecha_inicio)
     if fecha_fin: tickets = tickets.filter(fecha__lte=fecha_fin)
     if colonia_id: tickets = tickets.filter(colonia_id=colonia_id)
@@ -160,6 +160,7 @@ def inicio(request):
         tickets_data.append({
             'folio': p.folio, 'lat': p.latitud if p.latitud else 'None', 'lng': p.longitud if p.longitud else 'None',
             'status': p.status, 'asunto': p.asunto, 'nombre': p.nombre, 
+            'nombre': p.nombre_completo,
             'colonia': p.colonia.nombre_colonia if p.colonia else 'N/A', 
             'direccion': p.direccion.nombre_direccion if p.direccion else 'N/A',
             'fecha': p.fecha.strftime('%d/%m/%Y'),
@@ -354,7 +355,7 @@ def panel_agente(request):
         Q(coordinador_asignado=usuario_actual)
     ).distinct()
 
-    if q: mis_tickets = mis_tickets.filter(Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(asunto__icontains=q))
+    if q: mis_tickets = mis_tickets.filter(Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(apellido_paterno__icontains=q) | Q(apellido_materno__icontains=q) | Q(asunto__icontains=q) | Q(calle__icontains=q))
     if fecha_inicio: mis_tickets = mis_tickets.filter(fecha__gte=fecha_inicio)
     if fecha_fin: mis_tickets = mis_tickets.filter(fecha__lte=fecha_fin)
     if colonia_id: mis_tickets = mis_tickets.filter(colonia_id=colonia_id)
@@ -377,6 +378,7 @@ def panel_agente(request):
             puntos_data.append({
                 'folio': p.folio, 'lat': float(p.latitud), 'lng': float(p.longitud),
                 'status': p.status, 'asunto': p.asunto, 'nombre': p.nombre,
+                'nombre': p.nombre_completo,
                 'fecha': p.fecha.strftime('%d/%m/%Y'),
                 'colonia': p.colonia.nombre_colonia if p.colonia else 'N/A',
                 'direccion': p.direccion.nombre_direccion if p.direccion else 'N/A',

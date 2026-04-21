@@ -35,27 +35,30 @@ class CatColonia(models.Model):
 class TicketAyuda(models.Model):
     folio = models.CharField(max_length=20, primary_key=True, blank=True)
     fecha = models.DateField(auto_now_add=True) 
-    nombre = models.CharField(max_length=150)
+    
+    # 👇 NUEVOS CAMPOS DE NOMBRE 👇
+    nombre = models.CharField(max_length=100, verbose_name="Nombre(s)")
+    apellido_paterno = models.CharField(max_length=100, verbose_name="Apellido Paterno")
+    apellido_materno = models.CharField(max_length=100, blank=True, null=True, verbose_name="Apellido Materno (Opcional)")
+    
     asunto = models.CharField(max_length=150, blank=True, null=True)
     notas = models.TextField(blank=True, null=True)
     colonia = models.ForeignKey(CatColonia, on_delete=models.SET_NULL, null=True)
-    domicilio = models.CharField(max_length=255, blank=True, null=True)
+    
+    # 👇 NUEVOS CAMPOS DE DIRECCIÓN FÍSICA 👇
+    calle = models.CharField(max_length=150, blank=True, null=True, verbose_name="Calle/Avenida")
+    numero_exterior = models.CharField(max_length=50, blank=True, null=True, verbose_name="Núm. Exterior")
+    numero_interior = models.CharField(max_length=50, blank=True, null=True, verbose_name="Núm. Interior (Opcional)")
+    
     telefono = models.CharField(max_length=20, blank=True, null=True)
-    direccion = models.ForeignKey(CatDireccion, on_delete=models.SET_NULL, null=True)
+    direccion = models.ForeignKey(CatDireccion, on_delete=models.SET_NULL, null=True, verbose_name="Dependencia")
     observaciones = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=50, default='Nuevo')
     latitud = models.CharField(max_length=50, blank=True, null=True)
     longitud = models.CharField(max_length=50, blank=True, null=True)
     evidencia = models.FileField(upload_to='evidencias/', blank=True, null=True)
 
-    # ==========================================
-    # LEGACY: CAMPO ANTIGUO (No borrar hasta completar Paso 2)
-    # ==========================================
     agente_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='mis_tickets')
-    
-    # ==========================================
-    # 2. EVOLUCIÓN: ASIGNACIÓN MULTINIVEL 4D
-    # ==========================================
     director_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_como_director')
     subdirector_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_como_subdirector')
     coordinador_asignado = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_como_coordinador')
@@ -64,6 +67,18 @@ class TicketAyuda(models.Model):
     notas_agente = models.TextField(blank=True, null=True)
     gestor = models.ForeignKey('CopacisyDelegados', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Gestor de la Solicitud (Opcional)")
 
+    # 👇 PROPIEDADES FANTASMAS (Para no romper el front-end) 👇
+    @property
+    def nombre_completo(self):
+        materno = f" {self.apellido_materno}" if self.apellido_materno else ""
+        return f"{self.nombre} {self.apellido_paterno}{materno}"
+
+    @property
+    def direccion_completa(self):
+        ext = f" No. {self.numero_exterior}" if self.numero_exterior else ""
+        int_num = f" Int. {self.numero_interior}" if self.numero_interior else ""
+        return f"{self.calle}{ext}{int_num}".strip()
+
     def save(self, *args, **kwargs):
         if not self.folio:
             total_tickets = TicketAyuda.objects.count()
@@ -71,14 +86,13 @@ class TicketAyuda(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.folio} - {self.nombre}"
+        return f"{self.folio} - {self.nombre_completo}"
 
     @property
     def dias_abierto(self):
         if self.fecha:
             return (date.today() - self.fecha).days
         return 0
-
 # ==========================================
 # 3. EVOLUCIÓN: CHECKLIST DE TAREAS (MOTOR 4D)
 # ==========================================

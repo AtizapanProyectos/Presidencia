@@ -24,8 +24,13 @@ class TicketForm(forms.ModelForm):
 
     class Meta:
         model = TicketAyuda
-        # 👇 IMPORTANTE: Añadimos 'gestor' a la lista de fields 👇
-        fields = ['nombre', 'asunto', 'notas', 'colonia', 'domicilio', 'telefono', 'direccion', 'gestor', 'latitud', 'longitud']
+        # Actualizado con los nuevos campos de nombre y dirección física
+        fields = [
+            'nombre', 'apellido_paterno', 'apellido_materno', 
+            'asunto', 'notas', 'colonia', 
+            'calle', 'numero_exterior', 'numero_interior', 
+            'telefono', 'direccion', 'gestor', 'latitud', 'longitud'
+        ]
         widgets = {
             'latitud': forms.TextInput(attrs={'readonly': 'readonly'}), 
             'longitud': forms.TextInput(attrs={'readonly': 'readonly'}),

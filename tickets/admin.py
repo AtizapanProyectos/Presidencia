@@ -23,26 +23,19 @@ class CatDireccionAdmin(admin.ModelAdmin):
 # -----------------------------------------------------
 @admin.register(PerfilAgente)
 class PerfilAgenteAdmin(admin.ModelAdmin):
-    # Ahora mostramos el Rol (Director, Subdirector, Coordinador)
     list_display = ('usuario', 'rol', 'direccion_asignada')
-    
-    # Agregamos el rol a los filtros laterales
     list_filter = ('rol', 'direccion_asignada')
-    
-    # Buscador
     search_fields = ('usuario__username', 'direccion_asignada__nombre_direccion')
 
 # -----------------------------------------------------
 # 4. Tareas del Ticket (El Checklist 4D)
 # -----------------------------------------------------
-# Truco: Esto hace que las tareas aparezcan DENTRO del ticket en el Admin
 class TareaTicketInline(admin.TabularInline):
     model = TareaTicket
     extra = 0 # No agregar filas vacías por defecto
     readonly_fields = ('fecha_creacion', 'fecha_completada', 'ejecutor')
     fields = ('descripcion', 'completada', 'ejecutor', 'evidencia_tarea', 'fecha_creacion', 'fecha_completada')
 
-# Por si quieres ver todas las tareas sueltas en una lista maestra
 @admin.register(TareaTicket)
 class TareaTicketAdmin(admin.ModelAdmin):
     list_display = ('id', 'ticket', 'descripcion', 'completada', 'ejecutor')
@@ -54,28 +47,32 @@ class TareaTicketAdmin(admin.ModelAdmin):
 # -----------------------------------------------------
 @admin.register(TicketAyuda)
 class TicketAyudaAdmin(admin.ModelAdmin):
-    # Columnas que se van a ver en la lista principal (agregué el porcentaje)
-    list_display = ('folio', 'fecha', 'nombre', 'asunto', 'direccion', 'status', 'porcentaje_avance')
+    # Usamos la nueva función para mostrar el nombre completo en la tabla
+    list_display = ('folio', 'fecha', 'mostrar_nombre_completo', 'asunto', 'direccion', 'status', 'porcentaje_avance')
     
-    # Filtros laterales para buscar rápido
     list_filter = ('status', 'direccion', 'colonia', 'fecha')
     
-    # Barra de búsqueda
-    search_fields = ('folio', 'nombre', 'asunto', 'notas', 'telefono')
+    # Actualizamos el buscador con los nuevos campos
+    search_fields = ('folio', 'nombre', 'apellido_paterno', 'apellido_materno', 'asunto', 'notas', 'telefono', 'calle')
     
-    # ¡Truco genial! Permite cambiar el status sin tener que abrir el ticket
     list_editable = ('status',) 
-    
-    # Un menú estilo calendario arriba de la lista
     date_hierarchy = 'fecha'
-    
-    # Agregamos las tareas incrustadas al final del ticket
     inlines = [TareaTicketInline]
     
-    # Opcional: Para organizar mejor la vista de detalle en el admin
+    # Reorganizamos los fieldsets de forma profesional
     fieldsets = (
         ('Información del Ciudadano', {
-            'fields': ('folio', 'nombre', 'telefono', 'colonia', 'domicilio')
+            'fields': (
+                'folio', 
+                ('nombre', 'apellido_paterno', 'apellido_materno'), # Los agrupa en una fila
+                'telefono', 'gestor'
+            )
+        }),
+        ('Ubicación Física', {
+            'fields': (
+                'colonia', 
+                ('calle', 'numero_exterior', 'numero_interior') # Los agrupa en una fila
+            )
         }),
         ('Detalles del Reporte', {
             'fields': ('asunto', 'notas', 'direccion', 'latitud', 'longitud', 'evidencia')
@@ -83,18 +80,21 @@ class TicketAyudaAdmin(admin.ModelAdmin):
         ('Estado Operativo 4D', {
             'fields': ('status', 'porcentaje_avance', 'notas_agente')
         }),
-        ('Asignación Jerárquica (Nuevos)', {
+        ('Asignación Jerárquica', {
             'fields': ('director_asignado', 'subdirector_asignado', 'coordinador_asignado', 'agente_asignado')
         }),
     )
 
+    # Función que renderiza la propiedad del modelo en el list_display
+    def mostrar_nombre_completo(self, obj):
+        return obj.nombre_completo
+    mostrar_nombre_completo.short_description = 'Ciudadano'
+
+# -----------------------------------------------------
+# 6. Gestores (Copacis y Delegados)
+# -----------------------------------------------------
 @admin.register(CopacisyDelegados)
 class CopacisyDelegadosAdmin(admin.ModelAdmin):
-    # Columnas que se muestran en la lista
     list_display = ('Nombre', 'Apellidos', 'Seccion')
-
-    # Filtros laterales
     list_filter = ('Seccion',)
-
-    # Buscador
     search_fields = ('Nombre', 'Apellidos', 'Seccion')
