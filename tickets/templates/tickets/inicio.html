@@ -477,7 +477,12 @@ function abrirDetalleTicket(folio) {
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
                 <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Información General</b>
-                <button type="button" class="btn" style="background:#F59E0B; color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" id="btn-activar-edit" onclick="activarModoEdicion()">✏️ Editar Datos</button>
+                
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn" style="background:#F59E0B; color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" id="btn-activar-edit" onclick="activarModoEdicion()"> Editar Datos</button>
+                    
+                    <button type="button" class="btn view-field" style="background:var(--danger); color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" onclick="if(confirm('¿Está seguro de que desea cancelar este expediente permanentemente? Esta acción es irreversible.')) { document.getElementById('action_input_${ticket.folio}').value='eliminar_ticket'; document.getElementById('form-editar-ticket').submit(); }">Eliminar Registro</button>
+                </div>
             </div>
 
             <p class="view-field" style="margin: 0 0 15px 0;"><span style="font-weight: 800; color: var(--text-title); font-size: 1.1rem;">${ticket.nombre}</span></p>
@@ -644,7 +649,7 @@ function abrirDetalleTicket(folio) {
     if (ticket.status === 'En Validación') {
         htmlContent += `
             <div style="background: #EFF6FF; border: 1px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px;">
-                <h3 style="margin-top:0; color: #1D4ED8;">✅ Validación Requerida</h3>
+                <h3 style="margin-top:0; color: #1D4ED8;"> Validación Requerida</h3>
                 <p style="font-size: 0.85rem; color: #3B82F6; margin-bottom:15px;">La cuadrilla ha finalizado las acciones. Puede aprobar el cierre o devolver el trámite a campo.</p>
                 
                 <form method="POST" action="{% url 'inicio' %}" enctype="multipart/form-data">

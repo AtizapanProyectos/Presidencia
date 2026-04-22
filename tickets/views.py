@@ -90,6 +90,15 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
+            # 👇 NUEVO ESCENARIO: CANCELAR (ELIMINAR) EXPEDIENTE 👇
+            elif action == 'eliminar_ticket':
+                try:
+                    ticket_eliminar = TicketAyuda.objects.get(folio=folio_ticket)
+                    ticket_eliminar.delete()
+                except TicketAyuda.DoesNotExist:
+                    pass
+                return redirect('inicio')
+
             # ESCENARIO C: EL ADMIN EDITA LA INFORMACIÓN (EL NUEVO SUPERPODER)
             elif action == 'editar_ticket':
                 try:
