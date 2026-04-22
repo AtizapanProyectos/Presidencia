@@ -340,6 +340,29 @@
         </div>
     </div>
 
+
+
+    <div class="modal-overlay" id="modal-confirmar-cancelar" style="z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.6);">
+        <div style="background: rgba(255, 255, 255, 0.98); padding: 40px; border-radius: 24px; max-width: 420px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.8); text-align: center; animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+            
+            <div style="width: 70px; height: 70px; background: var(--danger-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.05);">
+                <svg style="width: 35px; height: 35px; fill: var(--danger);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            </div>
+            
+            <h2 style="font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--text-title); font-size: 1.4rem; margin-bottom: 10px;">¿Cancelar Expediente?</h2>
+            
+            <p style="font-family: 'Inter', sans-serif; color: var(--text-main); font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px;">
+                Estás a punto de cancelar permanentemente el folio <b id="folio-a-cancelar-text" style="color: var(--primary); font-size: 1.1rem;"></b>.<br><br>
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Esta acción es irreversible y destruirá toda la evidencia y el historial operativo.</span>
+            </p>
+            
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button type="button" class="btn" style="background: #F1F5F9; color: var(--text-main); flex: 1; padding: 12px; border-radius: 50px; font-weight: 700; border: none; cursor: pointer;" onclick="cerrarAlertaCancelar()">Cancelar</button>
+                <button type="button" class="btn" style="background: var(--danger); color: white; flex: 1; padding: 12px; border-radius: 50px; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="ejecutarCancelacion()">Sí, Eliminar</button>
+            </div>
+        </div>
+    </div>
+
 <script>
         // ==========================================
         // ICONOS SVG Y FUNCIONES
@@ -451,7 +474,14 @@
         
         // ============================================================================
         // CEREBRO 4D FRONTEND (VISTA LECTURA SÚPER ADMIN)
+   
+   
+   
+   
         // ============================================================================
+// ============================================================================
+// CEREBRO 4D FRONTEND (VISTA LECTURA SÚPER ADMIN)
+// ============================================================================
 function abrirDetalleTicket(folio) {
     let ticket = puntosBD.find(p => p.folio === folio);
     if (!ticket) return;
@@ -462,9 +492,6 @@ function abrirDetalleTicket(folio) {
 
     document.getElementById('m-folio').innerText = "#" + ticket.folio;
 
-    // =====================================================================
-    // 🆕 INYECCIÓN DEL FORMULARIO DE EDICIÓN EN LA TARJETA IZQUIERDA
-    // =====================================================================
     // Clonamos las opciones de tu buscador para no tener que usar variables globales
     let opcionesColonias = document.querySelector('select[name="colonia_id"]') ? document.querySelector('select[name="colonia_id"]').innerHTML : '';
     let opcionesDirecciones = document.querySelector('select[name="direccion_id"]') ? document.querySelector('select[name="direccion_id"]').innerHTML : '';
@@ -473,15 +500,15 @@ function abrirDetalleTicket(folio) {
         <form id="form-editar-ticket" method="POST" action="{% url 'inicio' %}" style="margin:0;">
             <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
             <input type="hidden" name="folio_ticket" value="${ticket.folio}">
-            <input type="hidden" name="action" value="editar_ticket">
+            <input type="hidden" name="action" id="action_input_${ticket.folio}" value="editar_ticket">
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
                 <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Información General</b>
                 
                 <div style="display:flex; gap:8px;">
-                    <button type="button" class="btn" style="background:#F59E0B; color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" id="btn-activar-edit" onclick="activarModoEdicion()"> Editar Datos</button>
+                    <button type="button" class="btn" style="background:#F59E0B; color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" id="btn-activar-edit" onclick="activarModoEdicion()"> Editar</button>
                     
-                    <button type="button" class="btn view-field" style="background:var(--danger); color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" onclick="if(confirm('¿Está seguro de que desea cancelar este expediente permanentemente? Esta acción es irreversible.')) { document.getElementById('action_input_${ticket.folio}').value='eliminar_ticket'; document.getElementById('form-editar-ticket').submit(); }">Eliminar Registro</button>
+<button type="button" class="btn" id="btn-eliminar-registro" style="background:var(--danger); color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" onclick="mostrarAlertaCancelar('${ticket.folio}')"> Eliminar Solicitud</button>
                 </div>
             </div>
 
@@ -495,13 +522,17 @@ function abrirDetalleTicket(folio) {
                 </div>
             </div>
 
-            <p class="view-field" style="margin: 0 0 15px 0; font-size:0.9rem; color:var(--text-main);">📧 ${ticket.email || 'Sin correo'} | 📞 ${ticket.tel || 'Sin tel'}</p>
+            <div class="view-field" style="margin: 0 0 15px 0;">
+                <p style="font-size:0.9rem; color:var(--text-main); margin:0;">📧 ${ticket.email || 'Sin correo'} | 📞 ${ticket.tel || 'Sin tel'}</p>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin:5px 0 0 0; text-transform:uppercase; font-weight:600;">GESTOR: <b style="color:var(--primary); font-weight:800;">${ticket.gestor}</b></p>
+            </div>
+
             <div class="edit-field" style="display:none; margin-bottom:15px;">
-                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">CONTACTO:</label>
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">CONTACTO Y GESTOR:</label>
                 <input type="email" name="email" class="form-control" value="${ticket.email || ''}" placeholder="Email" style="margin-top:5px; padding:8px;">
                 <input type="text" name="telefono" class="form-control" value="${ticket.tel || ''}" placeholder="Teléfono" style="margin-top:5px; padding:8px;">
                 <input type="text" name="gestor" class="form-control" value="${ticket.gestor === 'Ciudadano Directo' ? '' : ticket.gestor}" placeholder="Gestor o COPACI" style="margin-top:5px; padding:8px;">
-                </div>
+            </div>
 
             <p class="view-field" style="margin: 0 0 15px 0; font-size:0.85rem;">📍 ${ticket.calle || ''} ${ticket.ext || ''}, Col. <b>${ticket.colonia}</b></p>
             <div class="edit-field" style="display:none; margin-bottom:15px;">
@@ -549,18 +580,15 @@ function abrirDetalleTicket(folio) {
         </form>
     `;
 
-    // Localizamos la tarjeta izquierda y la reemplazamos con el nuevo HTML
     let tarjetaIzq = document.querySelector('#modal-detalle-ticket .modal-content > div[style*="grid"] > div:first-child > div:first-child');
     if(tarjetaIzq) {
         tarjetaIzq.innerHTML = formHTML;
         
-        // Aplicamos la clase de color al badge de estado dinámico
         let statusBadge = document.getElementById('m-status-dinamico');
         if(statusBadge) {
             statusBadge.className = "badge " + (ticket.status === 'Nuevo' ? 'bg-nuevo' : (ticket.status === 'En Proceso' ? 'bg-proceso' : (ticket.status === 'En Validación' ? 'bg-validacion' : 'bg-resuelto')));
         }
     }
-    // =====================================================================
 
     let container = document.getElementById('control-4d-container');
     
@@ -650,7 +678,7 @@ function abrirDetalleTicket(folio) {
     if (ticket.status === 'En Validación') {
         htmlContent += `
             <div style="background: #EFF6FF; border: 1px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px;">
-                <h3 style="margin-top:0; color: #1D4ED8;"> Validación Requerida</h3>
+                <h3 style="margin-top:0; color: #1D4ED8;">✅ Validación Requerida</h3>
                 <p style="font-size: 0.85rem; color: #3B82F6; margin-bottom:15px;">La cuadrilla ha finalizado las acciones. Puede aprobar el cierre o devolver el trámite a campo.</p>
                 
                 <form method="POST" action="{% url 'inicio' %}" enctype="multipart/form-data">
@@ -694,7 +722,6 @@ function abrirDetalleTicket(folio) {
                 mapDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDetalle);
                 
-                // Cargamos el GeoJSON también para el mapa del modal
                 if(typeof cargarGeoJSON === "function") cargarGeoJSON(mapDetalle);
 
                 markerDetalle = L.marker([lat, lng], {icon: iconos[ticket.status] || iconos['Nuevo']}).addTo(mapDetalle);
@@ -713,21 +740,49 @@ function activarModoEdicion() {
     document.querySelectorAll('.view-field').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.edit-field').forEach(el => el.style.display = 'block');
     document.getElementById('btn-activar-edit').style.display = 'none';
+    document.getElementById('btn-eliminar-registro').style.display = 'none'; // También escondemos el botón eliminar
 }
 
-        function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
-        window.onclick = function(event) { if (event.target.classList.contains('modal-overlay')) event.target.style.display = 'none'; }
+function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
+function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+window.onclick = function(event) { if (event.target.classList.contains('modal-overlay')) event.target.style.display = 'none'; }
 
-        // TABLAS EN ESPAÑOL
-        $(document).ready(function() {
-            $('#tabla-tickets').DataTable({
-                dom: 'Bfrtip',
-                buttons: [{ extend: 'excelHtml5', text: ' Descargar Padrón Base', title: 'Reporte_General_Tickets' }],
-                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-                pageLength: 10
-            });
-        });
-    </script>
+// TABLAS EN ESPAÑOL
+$(document).ready(function() {
+    $('#tabla-tickets').DataTable({
+        dom: 'Bfrtip',
+        buttons: [{ extend: 'excelHtml5', text: ' Descargar Padrón Base', title: 'Reporte_General_Tickets' }],
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+        pageLength: 10
+    });
+});
+
+
+// ==========================================
+// LÓGICA DE ALERTA DE CANCELACIÓN (NATIVA)
+// ==========================================
+let folioParaCancelarGlobal = null;
+
+function mostrarAlertaCancelar(folio) {
+    folioParaCancelarGlobal = folio;
+    document.getElementById('folio-a-cancelar-text').innerText = "#" + folio;
+    document.getElementById('modal-confirmar-cancelar').style.display = 'flex';
+}
+
+function cerrarAlertaCancelar() {
+    document.getElementById('modal-confirmar-cancelar').style.display = 'none';
+    folioParaCancelarGlobal = null;
+}
+
+function ejecutarCancelacion() {
+    if (folioParaCancelarGlobal) {
+        // Aprovechamos el form que ya construiste dinámicamente en abrirDetalleTicket
+        document.getElementById('action_input_' + folioParaCancelarGlobal).value = 'eliminar_ticket';
+        document.getElementById('form-editar-ticket').submit();
+    }
+}
+
+
+</script>
 </body>
 </html>
