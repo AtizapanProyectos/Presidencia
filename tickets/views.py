@@ -113,6 +113,7 @@ def inicio(request):
                     t.calle = request.POST.get('calle')
                     t.numero_exterior = request.POST.get('numero_exterior')
                     t.numero_interior = request.POST.get('numero_interior')
+                    t.gestor = request.POST.get('gestor')
                     
                     # Actualización de llaves foráneas (Selects)
                     col_id = request.POST.get('colonia_id')
@@ -223,7 +224,7 @@ def inicio(request):
             'subdirector': p.subdirector_asignado.username if p.subdirector_asignado else 'Sin asignar',
             'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
             'tareas': tareas_list,
-            'gestor': str(p.gestor) if p.gestor else 'Ciudadano Directo',
+            'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
         })
 
     if request.GET.get('ajax') == '1':
@@ -442,7 +443,7 @@ def panel_agente(request):
                 'subdirector': p.subdirector_asignado.username if p.subdirector_asignado else 'Sin asignar',
                 'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
                 'tareas': tareas_list,
-                'gestor': str(p.gestor) if p.gestor else 'Ciudadano Directo'
+                'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
             })
 
     if request.GET.get('ajax') == '1':

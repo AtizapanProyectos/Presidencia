@@ -66,7 +66,7 @@ class TicketAyuda(models.Model):
 
     porcentaje_avance = models.IntegerField(default=0)
     notas_agente = models.TextField(blank=True, null=True)
-    gestor = models.ForeignKey('CopacisyDelegados', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Gestor de la Solicitud (Opcional)")
+    gestor = models.CharField(max_length=200, blank=True, null=True, verbose_name="Gestor (Dejar en blanco si es Ciudadano Directo)")
 
     # 👇 PROPIEDADES FANTASMAS (Para no romper el front-end) 👇
     @property

@@ -500,7 +500,8 @@ function abrirDetalleTicket(folio) {
                 <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">CONTACTO:</label>
                 <input type="email" name="email" class="form-control" value="${ticket.email || ''}" placeholder="Email" style="margin-top:5px; padding:8px;">
                 <input type="text" name="telefono" class="form-control" value="${ticket.tel || ''}" placeholder="Teléfono" style="margin-top:5px; padding:8px;">
-            </div>
+                <input type="text" name="gestor" class="form-control" value="${ticket.gestor === 'Ciudadano Directo' ? '' : ticket.gestor}" placeholder="Gestor o COPACI" style="margin-top:5px; padding:8px;">
+                </div>
 
             <p class="view-field" style="margin: 0 0 15px 0; font-size:0.85rem;">📍 ${ticket.calle || ''} ${ticket.ext || ''}, Col. <b>${ticket.colonia}</b></p>
             <div class="edit-field" style="display:none; margin-bottom:15px;">
