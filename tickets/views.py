@@ -19,8 +19,10 @@ def vista_login(request):
     if request.user.is_authenticated:
         if request.user.is_superuser:
             return redirect('inicio')
-        else:
+        elif request.user.is_staff:
             return redirect('panel_agente')
+        else:
+            return redirect('crear_ticket')
 
     if request.method == 'POST':
         formulario = AuthenticationForm(request, data=request.POST)
@@ -29,8 +31,10 @@ def vista_login(request):
             login(request, usuario)
             if usuario.is_superuser:
                 return redirect('inicio')
-            else:
+            elif usuario.is_staff:
                 return redirect('panel_agente')
+            else:
+                return redirect('crear_ticket')
     else:
         formulario = AuthenticationForm()
 
@@ -39,39 +43,41 @@ def vista_login(request):
 
 @login_required(login_url='/')
 def inicio(request):
+    # BARRERA DE SEGURIDAD: Solo superusuarios entran aquí
+    if not request.user.is_superuser:
+        if request.user.is_staff:
+            return redirect('panel_agente')
+        return redirect('crear_ticket')
+
     # --- PROCESAMIENTO DE ACCIONES (POST) ---
     if request.method == 'POST':
         folio_ticket = request.POST.get('folio_ticket')
-        action = request.POST.get('action') # Capturamos la acción
+        action = request.POST.get('action') 
         
         if folio_ticket:
-            # ESCENARIO A: EL ADMIN APRUEBA EL TICKET DEFINITIVAMENTE
             if action == 'aprobar_ticket':
                 try:
                     ticket_aprobar = TicketAyuda.objects.get(folio=folio_ticket)
                     ticket_aprobar.status = 'Resuelto'
                     ticket_aprobar.porcentaje_avance = 100
                     nota_previa = ticket_aprobar.observaciones if ticket_aprobar.observaciones else ''
-                    ticket_aprobar.observaciones = f"{nota_previa}\n\n[SISTEMA]: 🟢 Expediente validado y cerrado definitivamente por Alta Dirección el {timezone.now().strftime('%d/%m/%Y')}."
+                    ticket_aprobar.observaciones = f"{nota_previa}\n\n[SISTEMA]: Expediente validado y cerrado definitivamente por Alta Dirección el {timezone.now().strftime('%d/%m/%Y')}."
                     ticket_aprobar.save()
                 except TicketAyuda.DoesNotExist:
                     pass
                 return redirect('inicio')
 
-            # ESCENARIO B: EL ADMIN DEVUELVE EL TICKET
             elif action == 'rechazar_ticket':
                 try:
                     ticket_rechazar = TicketAyuda.objects.get(folio=folio_ticket)
                     nota_rechazo = request.POST.get('notas_agente', 'Revisión requerida')
                     evidencia = request.FILES.get('evidencia_tarea')
                     
-                    # 1. Creamos una nueva tarea para obligar a la cuadrilla a corregir
                     TareaTicket.objects.create(
                         ticket=ticket_rechazar, 
-                        descripcion=f"⚠️ CORRECCIÓN: {nota_rechazo}"
+                        descripcion=f"CORRECCIÓN: {nota_rechazo}"
                     )
                     
-                    # 2. Regresamos el estatus a "En Proceso" y recalculamos porcentaje
                     ticket_rechazar.status = 'En Proceso'
                     total_t = ticket_rechazar.tareas.count()
                     hechas_t = ticket_rechazar.tareas.filter(completada=True).count()
@@ -79,9 +85,8 @@ def inicio(request):
                         ticket_rechazar.porcentaje_avance = int((hechas_t / total_t) * 100)
                     
                     nota_previa = ticket_rechazar.observaciones if ticket_rechazar.observaciones else ''
-                    ticket_rechazar.observaciones = f"{nota_previa}\n\n[SISTEMA]: 🔴 Trámite devuelto por Admin con observaciones."
+                    ticket_rechazar.observaciones = f"{nota_previa}\n\n[SISTEMA]: Trámite devuelto por Admin con observaciones."
                     
-                    # 3. Guardamos la evidencia en el ticket si adjuntó una
                     if evidencia:
                         ticket_rechazar.evidencia = evidencia
                         
@@ -90,7 +95,6 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-            # 👇 NUEVO ESCENARIO: CANCELAR (ELIMINAR) EXPEDIENTE 👇
             elif action == 'eliminar_ticket':
                 try:
                     ticket_eliminar = TicketAyuda.objects.get(folio=folio_ticket)
@@ -99,7 +103,6 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-            # ESCENARIO C: EL ADMIN EDITA LA INFORMACIÓN (EL NUEVO SUPERPODER)
             elif action == 'editar_ticket':
                 try:
                     t = TicketAyuda.objects.get(folio=folio_ticket)
@@ -114,8 +117,15 @@ def inicio(request):
                     t.numero_exterior = request.POST.get('numero_exterior')
                     t.numero_interior = request.POST.get('numero_interior')
                     t.gestor = request.POST.get('gestor')
+                    t.via_entrada = request.POST.get('via_entrada')
                     
-                    # Actualización de llaves foráneas (Selects)
+                    # --- FILTRO DE SEGURIDAD PARA EL OCP ---
+                    if t.via_entrada == 'Ciudadano':
+                        t.numero_ocp = '' # Forzamos a que esté vacío si es ciudadano
+                    else:
+                        t.numero_ocp = request.POST.get('numero_ocp')
+                    # ---------------------------------------
+                    
                     col_id = request.POST.get('colonia_id')
                     if col_id: 
                         t.colonia_id = col_id
@@ -129,7 +139,6 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-            # ESCENARIO D: REASIGNACIÓN DE DIRECTOR
             else:
                 nuevo_agente_id = request.POST.get('nuevo_agente')
                 try:
@@ -163,7 +172,6 @@ def inicio(request):
     if colonia_id: tickets = tickets.filter(colonia_id=colonia_id)
     if direccion_id: tickets = tickets.filter(direccion_id=direccion_id)
 
-    # KPIs
     total_tickets = tickets.count()
     tickets_nuevos = tickets.filter(status='Nuevo').count()
     tickets_validacion = tickets.filter(status='En Validación').count()
@@ -176,7 +184,6 @@ def inicio(request):
 
     top_asuntos = tickets.values('asunto').annotate(total=Count('folio')).order_by('-total')[:5]
 
-    # PREPARACIÓN DE DATOS PARA EL MODAL (JSON)
     tickets_data = []
     hoy = timezone.now().date()
     for p in tickets:
@@ -185,7 +192,7 @@ def inicio(request):
             tiempo = "Pendiente"
             if t.completada and t.fecha_completada:
                 dias = (t.fecha_completada.date() - t.fecha_creacion.date()).days
-                tiempo = "Mismo día" if dias == 0 else f"{dias} día(s)"
+                tiempo = "Mismo dia" if dias == 0 else f"{dias} dia(s)"
             
             tareas_list.append({
                 'id': t.id,
@@ -225,6 +232,7 @@ def inicio(request):
             'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
             'tareas': tareas_list,
             'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
+            'ocp': p.numero_ocp if p.numero_ocp else 'N/A',
         })
 
     if request.GET.get('ajax') == '1':
@@ -253,7 +261,6 @@ def inicio(request):
     }
     return render(request, 'tickets/inicio.html', contexto)
 
-
 @login_required(login_url='/')
 def crear_ticket(request):
     if request.method == 'POST':
@@ -270,13 +277,28 @@ def crear_ticket(request):
                         agentes_ordenados = agentes_area.annotate(carga_trabajo=Count('mis_tickets', filter=~Q(mis_tickets__status='Resuelto'))).order_by('carga_trabajo')
                         ticket.agente_asignado = agentes_ordenados.first()
             ticket.save()
-            return redirect('inicio')
+            
+            # --- REDIRECCIÓN INTELIGENTE ---
+            if request.user.is_superuser:
+                return redirect('inicio') # Regresa al mapa general
+            elif request.user.is_staff:
+                return redirect('panel_agente') # Regresa a su panel de gestión
+            else:
+                # Los capturistas base se quedan aquí para seguir capturando
+                return redirect('crear_ticket') 
+            # -------------------------------
+            
     else:
         formulario = TicketForm()
+        
     return render(request, 'tickets/crear_ticket.html', {'formulario': formulario})
 
 @login_required(login_url='/')
 def panel_agente(request):
+    # BARRERA DE SEGURIDAD: Los capturistas normales no pasan de aqui
+    if not request.user.is_staff and not request.user.is_superuser:
+        return redirect('crear_ticket')
+
     usuario_actual = request.user
 
     try:
@@ -322,16 +344,16 @@ def panel_agente(request):
                 ticket.status = 'Resuelto'
                 ticket.porcentaje_avance = 100
                 nota_previa = ticket.observaciones if ticket.observaciones else ''
-                ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: 🟢 Ticket validado y cerrado por la Dirección."
+                ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Ticket validado y cerrado por la Direccion."
                 ticket.save()
 
             elif action_4d == 'rechazar_ticket' and rol_usuario == 'Director':
-                nota_rechazo = request.POST.get('notas_agente', 'Revisión requerida')
+                nota_rechazo = request.POST.get('notas_agente', 'Revision requerida')
                 evidencia = request.FILES.get('evidencia_tarea')
                 
                 TareaTicket.objects.create(
                     ticket=ticket, 
-                    descripcion=f"⚠️ CORRECCIÓN: {nota_rechazo}"
+                    descripcion=f"CORRECCIÓN: {nota_rechazo}"
                 )
                 
                 ticket.status = 'En Proceso'
@@ -340,7 +362,7 @@ def panel_agente(request):
                 ticket.porcentaje_avance = int((hechas_t / total_t) * 100)
                 
                 nota_previa = ticket.observaciones if ticket.observaciones else ''
-                ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: 🔴 Trámite devuelto por la Dirección."
+                ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Tramite devuelto por la Direccion."
                 if evidencia:
                     ticket.evidencia = evidencia
                 ticket.save()
@@ -361,13 +383,12 @@ def panel_agente(request):
                     
                     if nota_texto:
                         nota_previa = ticket.observaciones if ticket.observaciones else ''
-                        ticket.observaciones = f"{nota_previa}\n✔️ [{tarea.descripcion}] - Nota de {usuario_actual.username}: {nota_texto}"
+                        ticket.observaciones = f"{nota_previa}\n [{tarea.descripcion}] - Nota de {usuario_actual.username}: {nota_texto}"
                     
                     total_tareas = ticket.tareas.count()
                     tareas_hechas = ticket.tareas.filter(completada=True).count()
                     if total_tareas > 0:
                         ticket.porcentaje_avance = int((tareas_hechas / total_tareas) * 100)
-                        # Si llegan al 100%, lo bajamos al 95% y lo mandamos a validación
                         if ticket.porcentaje_avance == 100:
                             ticket.porcentaje_avance = 95
                             ticket.status = 'En Validación'
@@ -444,6 +465,7 @@ def panel_agente(request):
                 'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
                 'tareas': tareas_list,
                 'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
+                'ocp': p.numero_ocp if p.numero_ocp else 'N/A',
             })
 
     if request.GET.get('ajax') == '1':

@@ -66,6 +66,23 @@ class TicketAyuda(models.Model):
 
     porcentaje_avance = models.IntegerField(default=0)
     notas_agente = models.TextField(blank=True, null=True)
+    VIA_CHOICES = [
+        ('Ciudadano', 'Ciudadano'),
+        ('Oficio', 'Oficio'),
+    ]
+    via_entrada = models.CharField(
+        max_length=20, 
+        choices=VIA_CHOICES, 
+        default='Ciudadano',
+        verbose_name="Vía de Entrada"
+    )
+    
+    numero_ocp = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        verbose_name="Número de OCP"
+    )
     gestor = models.CharField(max_length=200, blank=True, null=True, verbose_name="Gestor (Dejar en blanco si es Ciudadano Directo)")
 
     # 👇 PROPIEDADES FANTASMAS (Para no romper el front-end) 👇

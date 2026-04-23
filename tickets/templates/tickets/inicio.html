@@ -309,7 +309,7 @@
         <div class="modal-content">
             <button class="btn-cerrar" onclick="cerrarModal('modal-detalle-ticket')">×</button>
             <h2 style="margin-top:0; color: var(--primary); border-bottom: 1px solid var(--border-delicate); padding-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                 📋 Expediente de Solicitud <span id="m-folio" style="background:#F1F5F9; padding: 6px 14px; border-radius: 10px; font-size: 1rem; color:var(--text-title);"></span>
+                 Expediente de Solicitud <span id="m-folio" style="background:#F1F5F9; padding: 6px 14px; border-radius: 10px; font-size: 1rem; color:var(--text-title);"></span>
             </h2>
             
             <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; margin-top: 25px;">
@@ -496,8 +496,8 @@ function abrirDetalleTicket(folio) {
     let opcionesColonias = document.querySelector('select[name="colonia_id"]') ? document.querySelector('select[name="colonia_id"]').innerHTML : '';
     let opcionesDirecciones = document.querySelector('select[name="direccion_id"]') ? document.querySelector('select[name="direccion_id"]').innerHTML : '';
 
-    let formHTML = `
-        <form id="form-editar-ticket" method="POST" action="{% url 'inicio' %}" style="margin:0;">
+let formHTML = `
+        <form id="form-editar-ticket" method="POST" action="{% url 'inicio' %}" style="margin:0;" onsubmit="if(this.via_entrada.value === 'Ciudadano') { this.numero_ocp.value = ''; }">
             <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
             <input type="hidden" name="folio_ticket" value="${ticket.folio}">
             <input type="hidden" name="action" id="action_input_${ticket.folio}" value="editar_ticket">
@@ -508,7 +508,7 @@ function abrirDetalleTicket(folio) {
                 <div style="display:flex; gap:8px;">
                     <button type="button" class="btn" style="background:#F59E0B; color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" id="btn-activar-edit" onclick="activarModoEdicion()"> Editar</button>
                     
-<button type="button" class="btn" id="btn-eliminar-registro" style="background:var(--danger); color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" onclick="mostrarAlertaCancelar('${ticket.folio}')"> Eliminar Solicitud</button>
+                    <button type="button" class="btn" id="btn-eliminar-registro" style="background:var(--danger); color:white; padding:5px 12px; font-size:0.7rem; border-radius:8px; font-weight:700; border:none; cursor:pointer;" onclick="mostrarAlertaCancelar('${ticket.folio}')"> Eliminar Solicitud</button>
                 </div>
             </div>
 
@@ -523,18 +523,31 @@ function abrirDetalleTicket(folio) {
             </div>
 
             <div class="view-field" style="margin: 0 0 15px 0;">
-                <p style="font-size:0.9rem; color:var(--text-main); margin:0;">📧 ${ticket.email || 'Sin correo'} | 📞 ${ticket.tel || 'Sin tel'}</p>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin:5px 0 0 0; text-transform:uppercase; font-weight:600;">GESTOR: <b style="color:var(--primary); font-weight:800;">${ticket.gestor}</b></p>
+                <p style="font-size:0.9rem; color:var(--text-main); margin:0;">${ticket.email || 'Sin correo'} | ${ticket.tel || 'Sin tel'}</p>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin:5px 0 0 0; text-transform:uppercase; font-weight:600;">GESTOR: <b style="color:var(--primary); font-weight:800;">${ticket.gestor}</b> | OCP: <b style="color:var(--gold-accent); font-weight:800;">${ticket.ocp}</b></p>
             </div>
 
             <div class="edit-field" style="display:none; margin-bottom:15px;">
-                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">CONTACTO Y GESTOR:</label>
+                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">VÍA DE ENTRADA Y CONTACTO:</label>
+                
+                <select name="via_entrada" id="edit_via_entrada" class="form-control" style="margin-top:5px; padding:8px;" onchange="toggleOcpEdit()">
+                    <option value="Ciudadano" ${ticket.via === 'Ciudadano' ? 'selected' : ''}>Ciudadano (Directo)</option>
+                    <option value="Oficio" ${ticket.via === 'Oficio' ? 'selected' : ''}>Oficio (Formal)</option>
+                </select>
+
                 <input type="email" name="email" class="form-control" value="${ticket.email || ''}" placeholder="Email" style="margin-top:5px; padding:8px;">
                 <input type="text" name="telefono" class="form-control" value="${ticket.tel || ''}" placeholder="Teléfono" style="margin-top:5px; padding:8px;">
-                <input type="text" name="gestor" class="form-control" value="${ticket.gestor === 'Ciudadano Directo' ? '' : ticket.gestor}" placeholder="Gestor o COPACI" style="margin-top:5px; padding:8px;">
+                
+                <div style="display:flex; gap:5px; margin-top:5px; width: 100%;">
+                    <input type="text" name="gestor" class="form-control" value="${ticket.gestor === 'Ciudadano Directo' ? '' : ticket.gestor}" placeholder="Gestor o COPACI" style="padding:8px; flex: 1; min-width: 0;">
+    
+                    <div id="contenedor_ocp_edit" style="display: ${ticket.via === 'Oficio' ? 'block !important' : 'none !important'}; flex: 1; min-width: 0;">
+                      <input type="text" name="numero_ocp" class="form-control" value="${ticket.ocp === 'N/A' ? '' : ticket.ocp}" placeholder="Nº OCP" style="padding:8px; border: 1px solid var(--gold-accent); width: 100%; box-sizing: border-box;">
+                    </div>
+                </div>
             </div>
 
-            <p class="view-field" style="margin: 0 0 15px 0; font-size:0.85rem;">📍 ${ticket.calle || ''} ${ticket.ext || ''}, Col. <b>${ticket.colonia}</b></p>
+            <p class="view-field" style="margin: 0 0 15px 0; font-size:0.85rem;">${ticket.calle || ''} ${ticket.ext || ''}, Col. <b>${ticket.colonia}</b></p>
             <div class="edit-field" style="display:none; margin-bottom:15px;">
                 <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">UBICACIÓN FÍSICA:</label>
                 <input type="text" name="calle" class="form-control" value="${ticket.calle || ''}" placeholder="Calle" style="margin-top:5px; padding:8px;">
@@ -574,8 +587,8 @@ function abrirDetalleTicket(folio) {
             <p class="view-field" style="margin: 15px 0 0 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Estado General</b> <br><span id="m-status-dinamico" class="badge" style="margin-top: 5px;">${ticket.status}</span></p>
 
             <div class="edit-field" style="display:none; margin-top:25px; border-top:2px solid #FEF3C7; padding-top:15px;">
-                <button type="submit" class="btn btn-primary" style="width:100%; background:#10B981; border-radius:50px; border:none;">💾 Guardar Cambios</button>
-                <button type="button" class="btn btn-danger-outline" style="width:100%; margin-top:10px; border:none; border-radius:50px;" onclick="location.reload()">❌ Cancelar</button>
+                <button type="submit" class="btn btn-primary" style="width:100%; background:#10B981; border-radius:50px; border:none;">Guardar Cambios</button>
+                <button type="button" class="btn btn-danger-outline" style="width:100%; margin-top:10px; border:none; border-radius:50px;" onclick="location.reload()">Cancelar</button>
             </div>
         </form>
     `;
@@ -782,7 +795,25 @@ function ejecutarCancelacion() {
     }
 }
 
-
+// FUNCIÓN PARA MOSTRAR/OCULTAR OCP EN EL MODAL DE EDICIÓN
+// FUNCIÓN PARA MOSTRAR/OCULTAR OCP EN EL MODAL DE EDICIÓN
+function toggleOcpEdit() {
+    const selectVia = document.getElementById('edit_via_entrada');
+    const contenedorOcp = document.getElementById('contenedor_ocp_edit');
+    
+    if (selectVia.value === 'Oficio') {
+        // Usamos setProperty para poder forzar el !important
+        contenedorOcp.style.setProperty('display', 'block', 'important');
+        // Le damos un pequeño toque visual para que se note el cambio
+        contenedorOcp.style.animation = 'fadeInUp 0.3s ease';
+    } else {
+        // Forzamos el ocultamiento
+        contenedorOcp.style.setProperty('display', 'none', 'important');
+        // Limpiamos el valor por si lo regresan a Ciudadano
+        const inputOcp = contenedorOcp.querySelector('input');
+        if(inputOcp) inputOcp.value = '';
+    }
+}
 </script>
 </body>
 </html>

@@ -229,7 +229,8 @@
                         <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gestor (Copaci/Delegado)</b> <br><span id="m-gestor" style="color: var(--text-main); font-weight: 500;"></span></p>
                         <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Asunto</b> <br><span id="m-asunto" style="color: var(--text-main);"></span></p>
                         <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Estado General</b> <br><span id="m-status" class="badge"></span></p>
-                        
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gestor (Copaci/Delegado)</b> <br><span id="m-gestor" style="color: var(--text-main); font-weight: 500;"></span></p>
+                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Número OCP</b> <br><span id="m-ocp" style="color: var(--gold-accent); font-weight: 800;"></span></p>
                         <div style="border-top: 1px dashed var(--border); padding-top: 15px; margin-top: 5px;">
                             <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Contexto Ciudadano</b>
                             <span id="m-notas-ciudadano" style="display: block; margin-top: 8px; font-size: 0.9rem; line-height: 1.6; color: var(--text-main);"></span>
@@ -411,9 +412,10 @@
             if(document.getElementById('m-folio')) document.getElementById('m-folio').innerText = "#" + ticket.folio;
             if(document.getElementById('m-nombre')) document.getElementById('m-nombre').innerText = ticket.nombre;
             if(document.getElementById('m-gestor')) document.getElementById('m-gestor').innerText = ticket.gestor;
+            if(document.getElementById('m-ocp')) document.getElementById('m-ocp').innerText = ticket.ocp; // 👈 AGREGAR ESTA LÍNEA
             if(document.getElementById('m-asunto')) document.getElementById('m-asunto').innerText = ticket.asunto;
             if(document.getElementById('m-notas-ciudadano')) document.getElementById('m-notas-ciudadano').innerText = ticket.notas || "Sin contexto.";
-            
+
             let statusBadge = document.getElementById('m-status');
             if(statusBadge) {
                 statusBadge.innerText = ticket.status;

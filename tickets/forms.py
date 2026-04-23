@@ -16,20 +16,21 @@ class TicketForm(forms.ModelForm):
         widget=forms.Select(attrs={'style': 'width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;'})
     )
 
-    # ❌ ELIMINAMOS LA VARIABLE "gestor" QUE ESTABA AQUÍ PORQUE YA NO ES UN SELECT ❌
-
     class Meta:
         model = TicketAyuda
+        # 👇 AQUÍ ESTÁ EL TRUCO: El orden de esta lista define cómo se ve en el HTML 👇
         fields = [
             'nombre', 'apellido_paterno', 'apellido_materno', 
-            'asunto', 'notas', 'colonia', 
+            'asunto', 'notas', 'direccion', 'colonia', # <-- Movimos 'direccion' aquí
+            'via_entrada', 'numero_ocp',
             'calle', 'numero_exterior', 'numero_interior', 
-            'telefono', 'direccion', 'gestor', 'latitud', 'longitud',
+            'telefono', 'gestor', 'latitud', 'longitud',
             'email'
         ]
-        # 👇 AGREGAMOS EL GESTOR AQUÍ PARA DARLE ESTILO Y PLACEHOLDER 👇
+        
         widgets = {
             'latitud': forms.TextInput(attrs={'readonly': 'readonly'}), 
             'longitud': forms.TextInput(attrs={'readonly': 'readonly'}),
+            'numero_ocp': forms.TextInput(attrs={'style': 'width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;', 'placeholder': 'Ej. OCP-2026-001'}),
             'gestor': forms.TextInput(attrs={'style': 'width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;', 'placeholder': 'Ej. Juan Pérez (Dejar en blanco si es ciudadano directo)'}),
         }
