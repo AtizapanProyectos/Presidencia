@@ -10,4 +10,6 @@ urlpatterns = [
     path('crear/', views.crear_ticket, name='crear_ticket'), 
     path('mi-panel/', views.panel_agente, name='panel_agente'),
     path('salir/', views.salir, name='salir'),
+    # Agrega esta línea dentro de tu lista de urlpatterns:
+    path('api/corregir-texto/', views.corregir_texto_ia, name='corregir_texto_ia'),
 ]

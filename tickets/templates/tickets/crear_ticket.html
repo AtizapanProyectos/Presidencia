@@ -76,11 +76,9 @@
         
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
 
-        /* Formulario GRID 2 Columnas */
         .django-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; }
-        .django-form p { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+        .django-form p { display: flex; flex-direction: column; gap: 6px; margin: 0; position: relative; }
         
-        /* Campos anchos */
         .django-form p:has(textarea),
         .django-form p:has(select[name="colonia"]),
         .django-form p:has(select[name="direccion"]),
@@ -108,13 +106,12 @@
         }
         .formulario-container input:focus, .formulario-container select:focus, .formulario-container textarea:focus {
             outline: none; 
-            border-color: #c4acfc; 
+            border-color: #8B5CF6; 
             background: #FFFFFF; 
             box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
         }
         .formulario-container textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
 
-        /* Mapa */
         #mapa { flex-grow: 1; min-height: 650px; width: 100%; border-radius: 18px; border: var(--border-delicate); box-shadow: inset 0 2px 10px rgba(0,0,0,0.03); z-index: 1; margin-top: 15px; }
 
         .aviso-ia { 
@@ -130,18 +127,17 @@
             text-transform: uppercase; 
             letter-spacing: 0.5px; 
             margin-top: 20px; 
-            animation: slideDown 0.4s ease-out, parpadeo 2s infinite; 
+            animation: slideDown 0.4s ease-out; 
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
             align-items: center;
             gap: 10px;
             grid-column: span 2;
         }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes parpadeo { 0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); } 50% { box-shadow: 0 4px 25px rgba(16, 185, 129, 0.4); } 100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); } }
         
         .search-google-container { margin-bottom: 5px; width: 100%; }
 
-        /* ✅ Campos ocultos al ciudadano — se llenan automáticamente */
+        /* Campos ocultos al ciudadano */
         .django-form p:has(input[name="latitud"]),
         .django-form p:has(input[name="longitud"]),
         .django-form p:has(input[name="calle"]),
@@ -151,16 +147,18 @@
             display: none !important;
         }
 
-        /* Estilización del componente web de Google Places */
         gmp-place-autocomplete {
             width: 100%;
             --gmp-color-surface: rgba(255, 255, 255, 0.9);
             --gmp-color-on-surface: var(--text-title);
-            --gmp-color-primary: #bfa5fd;
+            --gmp-color-primary: #8B5CF6;
             --gmp-font-family: 'Inter', sans-serif;
             --gmp-border-radius: 12px;
             box-shadow: 0 4px 15px rgba(15,23,42,0.1);
         }
+        
+        /* Animación de Gemini */
+        @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
     </style>
 </head>
@@ -168,103 +166,165 @@
 
     <div class="top-bar">
         <div>
-            <h1> Módulo de Captura Ciudadana</h1>
+            <h1>Módulo de Captura Ciudadana</h1>
             <p class="instrucciones">El Sistema de Gestión generará un folio inmutable al guardar el expediente.</p>
         </div>
-        <a href="{% url 'inicio' %}" class="btn btn-cancelar">⬅ Cancelar y Volver</a>
+        <a href="{% url 'inicio' %}" class="btn btn-cancelar">Cancelar y Volver</a>
     </div>
 
     <div class="dashboard-grid">
         
         <div class="panel formulario-container">
-            <h3> Datos del Solicitante y Afectación</h3>
-<form method="POST">
-    {% csrf_token %}
-    
-    <div class="django-form">
-        
-        <p>{{ formulario.nombre.label_tag }} {{ formulario.nombre }}</p>
-        <p>{{ formulario.apellido_paterno.label_tag }} {{ formulario.apellido_paterno }}</p>
-        <p>{{ formulario.apellido_materno.label_tag }} {{ formulario.apellido_materno }}</p>
-        <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
-        <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
+            <h3>Datos del Solicitante y Afectación</h3>
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="django-form">
+                    
+                    <p>{{ formulario.nombre.label_tag }} {{ formulario.nombre }}</p>
+                    <p>{{ formulario.apellido_paterno.label_tag }} {{ formulario.apellido_paterno }}</p>
+                    <p>{{ formulario.apellido_materno.label_tag }} {{ formulario.apellido_materno }}</p>
+                    <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
+                    <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
 
-        <div style="grid-column: span 2;">
-            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación: </label>
-            <div id="contenedor-buscador-google"></div>
-        </div>
-        <p>{{ formulario.via_entrada.label_tag }} {{ formulario.via_entrada }}</p>
-        <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
-        <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
-        
-        <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
-        
-        <p>{{ formulario.colonia.label_tag }} {{ formulario.colonia }}</p>
-        <p>{{ formulario.calle.label_tag }} {{ formulario.calle }}</p>
-        <p>{{ formulario.numero_exterior.label_tag }} {{ formulario.numero_exterior }}</p>
-        <p>{{ formulario.numero_interior.label_tag }} {{ formulario.numero_interior }}</p>
-        <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
-        <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
+                    <div style="grid-column: span 2;">
+                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación: </label>
+                        <div id="contenedor-buscador-google"></div>
+                    </div>
+                    <p>{{ formulario.via_entrada.label_tag }} {{ formulario.via_entrada }}</p>
+                    <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
+                    <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
+                    
+                    <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
+                    
+                    <p>{{ formulario.colonia.label_tag }} {{ formulario.colonia }}</p>
+                    <p>{{ formulario.calle.label_tag }} {{ formulario.calle }}</p>
+                    <p>{{ formulario.numero_exterior.label_tag }} {{ formulario.numero_exterior }}</p>
+                    <p>{{ formulario.numero_interior.label_tag }} {{ formulario.numero_interior }}</p>
+                    <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
+                    <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
 
-        <div style="display: none;">
-            {{ formulario.latitud }}
-            {{ formulario.longitud }}
-        </div>
-        
-        <div id="mensaje-prediccion" class="aviso-ia" style="grid-column: span 2;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
-            Rutéo Inteligente: Área asignada automáticamente
-        </div>
-    </div>
+                    <div style="display: none;">
+                        {{ formulario.latitud }}
+                        {{ formulario.longitud }}
+                    </div>
+                    
+                    <div id="mensaje-prediccion" class="aviso-ia" style="grid-column: span 2;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                        Rutéo Inteligente: Área asignada automáticamente
+                    </div>
+                </div>
 
-    <button type="submit" class="btn btn-guardar">Generar Solicitud</button>
-</form>
+                <button type="submit" class="btn btn-guardar">Generar Solicitud</button>
+            </form>
         </div>
 
         <div class="panel">
-            <h3> Levantamiento Geográfico Inteligente</h3>
-
+            <h3>Levantamiento Geográfico Inteligente</h3>
             <div id="mapa"></div>
-        </div>
+        </div>  
 
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-    const selectVia = document.querySelector('select[name="via_entrada"]');
-    const inputOcp = document.querySelector('input[name="numero_ocp"]');
-    
-    // Validamos que existan para que no truene el script
-    if (selectVia && inputOcp) {
-        // Buscamos el contenedor <p> específico del OCP
-        const contenedorOcp = inputOcp.closest('p');
+        // ==========================================
+        // 🤖 MOTOR IA: GEMINI AUTOCORRECCIÓN REAL
+        // ==========================================
+        function aplicarIAOrtografica(campo) {
+            if (!campo) return;
+            
+            let indicadorIA = document.createElement('div');
+            indicadorIA.style.cssText = 'position:absolute; right:15px; top:35px; font-size:0.65rem; color:#8B5CF6; font-weight:700; opacity:0; transition:opacity 0.3s ease; display:flex; align-items:center; background: rgba(255,255,255,0.95); padding: 4px 10px; border-radius: 10px; pointer-events: none; z-index:10; box-shadow: 0 2px 10px rgba(0,0,0,0.05);';
+            campo.parentElement.appendChild(indicadorIA);
+            
+            let timeoutIA;
+            // Extraemos el token de Django para seguridad
+            let csrfElem = document.querySelector('[name=csrfmiddlewaretoken]');
+            const csrfToken = csrfElem ? csrfElem.value : '';
+            
+            campo.addEventListener('input', function() {
+                indicadorIA.style.opacity = '1';
+                indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; animation: parpadeo 1.5s infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg> Gemini analizando...';
+                
+                clearTimeout(timeoutIA);
+                
+                // Esperamos 1.5 segundos después de que el usuario deja de escribir para no saturar la API
+                timeoutIA = setTimeout(async () => {
+                    let textoOriginal = this.value.trim();
+                    
+                    if(textoOriginal.length < 5) {
+                        indicadorIA.style.opacity = '0';
+                        return;
+                    }
 
-        function toggleOcp() {
-            if (selectVia.value === 'Oficio') {
-                // Lo mostramos forzando flex para que encaje perfecto en tu grid
-                contenedorOcp.style.setProperty('display', 'flex', 'important');
-                inputOcp.required = true; 
-            } else {
-                // Lo ocultamos a la fuerza bruta, solo a este contenedor
-                contenedorOcp.style.setProperty('display', 'none', 'important');
-                inputOcp.value = ''; // Limpiamos si se arrepienten
-                inputOcp.required = false;
-            }
+                    try {
+                        let response = await fetch('/api/corregir-texto/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: JSON.stringify({ texto: textoOriginal })
+                        });
+                        
+                        let data = await response.json();
+                        
+                        if (data.texto_corregido && data.texto_corregido !== textoOriginal) {
+                            // Actualizamos el texto con la corrección real de la IA
+                            this.value = data.texto_corregido;
+                            
+                            // Efecto visual para que el usuario sepa que se corrigió
+                            this.style.transition = 'background-color 0.4s';
+                            this.style.backgroundColor = '#F5F3FF'; 
+                            setTimeout(() => { this.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1500);
+                        }
+                        
+                        indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; stroke:#10B981;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <span style="color:#10B981;">Texto impecable</span>';
+                        setTimeout(() => { indicadorIA.style.opacity = '0'; }, 2500);
+                        
+                    } catch(err) {
+                        console.error("Error contactando a Gemini:", err);
+                        indicadorIA.style.opacity = '0';
+                    }
+                }, 1500); 
+            });
         }
 
-        // Escuchamos el cambio en el select
-        selectVia.addEventListener('change', toggleOcp);
-        
-        // Lo ejecutamos una vez al cargar la página
-        toggleOcp();
-    }
+        document.addEventListener("DOMContentLoaded", () => {
+            // Lógica Vía de Entrada vs OCP
+            const selectVia = document.querySelector('select[name="via_entrada"]');
+            const inputOcp = document.querySelector('input[name="numero_ocp"]');
+            
+            if (selectVia && inputOcp) {
+                const contenedorOcp = inputOcp.closest('p');
 
+                function toggleOcp() {
+                    if (selectVia.value === 'Oficio') {
+                        contenedorOcp.style.setProperty('display', 'flex', 'important');
+                        inputOcp.required = true; 
+                    } else {
+                        contenedorOcp.style.setProperty('display', 'none', 'important');
+                        inputOcp.value = ''; 
+                        inputOcp.required = false;
+                    }
+                }
+                selectVia.addEventListener('change', toggleOcp);
+                toggleOcp();
+            }
 
+            // Animaciones de focus
             const inputs = document.querySelectorAll('.formulario-container input, .formulario-container select, .formulario-container textarea');
             inputs.forEach(el => {
                 el.addEventListener('focus', function() { this.parentElement.style.transform = 'scale(1.01)'; this.parentElement.style.transition = 'transform 0.2s'; });
                 el.addEventListener('blur', function() { this.parentElement.style.transform = 'scale(1)'; });
             });
+
+            // INICIALIZAR IA DE AUTOCORRECCIÓN EN ASUNTO Y NOTAS
+            let campoAsunto = document.querySelector('input[name="asunto"]');
+            let campoNotas = document.querySelector('textarea[name="notas"]');
+            
+            if (campoAsunto) aplicarIAOrtografica(campoAsunto);
+            if (campoNotas) aplicarIAOrtografica(campoNotas);
         });
 
         // ==========================================
@@ -279,8 +339,8 @@
         var marcador = L.marker([19.5542, -99.2458], {draggable: true, icon: iconRed}).addTo(map);
 
         function actualizarInputs(lat, lng) {
-            let iLat = document.getElementById('id_latitud');
-            let iLng = document.getElementById('id_longitud');
+            let iLat = document.querySelector('input[name="latitud"]');
+            let iLng = document.querySelector('input[name="longitud"]');
             if(iLat) iLat.value = lat.toFixed(6);
             if(iLng) iLng.value = lng.toFixed(6);
         }
@@ -320,9 +380,9 @@
         };
 
         function predecirAreaAutomática() {
-            let campoAsunto = document.getElementById('id_asunto');
-            let campoNotas = document.getElementById('id_notas');
-            let campoDireccion = document.getElementById('id_direccion'); 
+            let campoAsunto = document.querySelector('input[name="asunto"]');
+            let campoNotas = document.querySelector('textarea[name="notas"]');
+            let campoDireccion = document.querySelector('select[name="direccion"]'); 
             let avisoIA = document.getElementById('mensaje-prediccion');
 
             if (!campoAsunto || !campoNotas || !campoDireccion) return;
@@ -345,8 +405,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            var asunto = document.getElementById('id_asunto');
-            var notas = document.getElementById('id_notas');
+            let asunto = document.querySelector('input[name="asunto"]');
+            let notas = document.querySelector('textarea[name="notas"]');
             if(asunto) asunto.addEventListener('input', predecirAreaAutomática);
             if(notas) notas.addEventListener('input', predecirAreaAutomática);
         });
@@ -374,16 +434,14 @@
             .catch(err => console.error("Error al cargar el GeoJSON:", err));
 
         document.addEventListener('DOMContentLoaded', function() {
-            const selectColonia = document.getElementById('id_colonia'); 
+            const selectColonia = document.querySelector('select[name="colonia"]'); 
             if(selectColonia) {
                 selectColonia.addEventListener('change', volarAColonia);
             }
         });
 
-        // soloResaltar=true → solo pinta el polígono, NO mueve el pin (usado desde Google Places)
-        // soloResaltar=false (default) → comportamiento original: vuela + mueve pin
         function volarAColonia(soloResaltar = false) {
-            const selectColonia = document.getElementById('id_colonia'); 
+            const selectColonia = document.querySelector('select[name="colonia"]'); 
             if(!geojsonColoniasData || !selectColonia) return; 
 
             const nombreColoniaElegida = selectColonia.options[selectColonia.selectedIndex].text.trim().toLowerCase();
@@ -401,13 +459,11 @@
                 }).addTo(map);
 
                 if (!soloResaltar) {
-                    // Comportamiento original cuando el usuario cambia colonia manualmente
                     map.flyToBounds(capaColoniaResaltada.getBounds(), { padding: [30, 30], duration: 1.5, easeLinearity: 0.25 });
                     let centro = capaColoniaResaltada.getBounds().getCenter();
                     marcador.setLatLng(centro);
                     actualizarInputs(centro.lat, centro.lng);
                 }
-                // Si soloResaltar=true, solo dibujamos el polígono sin tocar el pin
             }
         }
 
@@ -416,7 +472,6 @@
         // =================================================================
         window.initGoogleSearch = async function() {
 
-            // ✅ Importamos PlaceAutocompleteElement desde la librería "places"
             await google.maps.importLibrary("places");
 
             const autocomplete = new google.maps.places.PlaceAutocompleteElement({
@@ -426,15 +481,11 @@
             const contenedor = document.getElementById('contenedor-buscador-google');
             contenedor.appendChild(autocomplete);
 
-            // ✅ CORRECCIÓN CLAVE: el evento correcto en Places API (New) es 'gmp-select'
-            //    (NO 'gmp-placeselect'). El objeto del evento trae e.placePrediction.
             autocomplete.addEventListener('gmp-select', async (e) => {
                 
-                // ✅ e.placePrediction es el objeto con el que obtenemos el Place completo
                 const placePrediction = e.placePrediction;
                 if (!placePrediction) return;
 
-                // ✅ Convertimos la predicción a un objeto Place y pedimos los campos necesarios
                 const place = placePrediction.toPlace();
 
                 try {
@@ -446,16 +497,13 @@
                     return;
                 }
 
-                // ✅ Obtenemos lat/lng desde place.location (objeto LatLng de Google)
                 const latGoogle = place.location.lat();
                 const lngGoogle = place.location.lng();
 
-                // ✅ Movemos el pin y el mapa
                 marcador.setLatLng([latGoogle, lngGoogle]);
                 map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
                 actualizarInputs(latGoogle, lngGoogle);
 
-                // ✅ Extraemos componentes de la dirección
                 let calle       = "";
                 let numero_ext  = "";
                 let coloniaGoogle = "";
@@ -471,10 +519,8 @@
                     });
                 }
 
-                // Si no vino calle del addressComponent, usamos el displayName
                 if (!calle && place.displayName) { calle = place.displayName; }
 
-                // ✅ Llenamos los campos del formulario con efecto visual
                 const inputCalle   = document.querySelector('input[name="calle"]');
                 const inputNumExt  = document.querySelector('input[name="numero_exterior"]');
                 const selectColonia = document.querySelector('select[name="colonia"]');
@@ -488,7 +534,6 @@
                     flashVerde(inputNumExt);
                 }
 
-                // ✅ Intentamos hacer match de la colonia en el select de Django
                 if (coloniaGoogle && selectColonia) {
                     const coloniaBuscada = coloniaGoogle.toLowerCase().trim();
                     let encontrado = false;
@@ -498,12 +543,10 @@
                             selectColonia.selectedIndex = j;
                             flashVerde(selectColonia);
                             encontrado = true;
-                            // soloResaltar=true: pinta polígono pero NO mueve el pin
                             if (typeof volarAColonia === "function") volarAColonia(true);
                             break;
                         }
                     }
-                    // Si no encontramos match exacto, intentamos match parcial por palabras
                     if (!encontrado) {
                         const palabrasBuscada = coloniaBuscada.split(/\s+/);
                         for (let j = 0; j < selectColonia.options.length; j++) {
@@ -520,7 +563,6 @@
             });
         };
 
-        // ✅ Función auxiliar: efecto flash verde en campos llenados automáticamente
         function flashVerde(elemento) {
             elemento.style.transition = 'background-color 0.3s ease';
             elemento.style.backgroundColor = '#ECFDF5';
@@ -528,14 +570,8 @@
                 elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
             }, 1800);
         }
-
     </script>
     
-    <!--
-        ✅ IMPORTANTE: Usamos loading=async y callback=initGoogleSearch
-           La librería "places" se importa dentro de initGoogleSearch con importLibrary()
-           para usar correctamente la Places API (New).
-    -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCfNfcBFEt8xYdFW4qO-IAT9yJja0oriqo&libraries=places&v=weekly&callback=initGoogleSearch"></script>
 </body>
 </html>

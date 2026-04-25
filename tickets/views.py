@@ -6,10 +6,12 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-
 from .models import *
 from .forms import TicketForm
 import json
+import google.generativeai as genai
+from django.http import JsonResponse
+
 
 def salir(request):
     logout(request)
@@ -39,6 +41,32 @@ def vista_login(request):
         formulario = AuthenticationForm()
 
     return render(request, 'registration/login.html', {'form': formulario})
+
+# Configura tu API Key de Gemini
+genai.configure(api_key="AIzaSyDvQCVhco4q0NUEi6GFyUs1VhCuCbRdOoI")
+
+def corregir_texto_ia(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            texto_original = data.get('texto', '')
+
+            if not texto_original or len(texto_original) < 5:
+                return JsonResponse({'texto_corregido': texto_original})
+
+            # 👇 ESTA ES LA LÍNEA QUE DEBES ACTUALIZAR 👇
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            prompt = f"Actúa como un corrector ortográfico para un sistema de gobierno. Corrige la ortografía y gramática del siguiente texto. No agregues información extra, no saludes, ni cambies el sentido, solo devuelve el texto corregido:\n\n{texto_original}"
+
+            response = model.generate_content(prompt)
+            texto_corregido = response.text.strip()
+
+            return JsonResponse({'texto_corregido': texto_corregido})
+        except Exception as e:
+            print(f">>> ERROR GEMINI: {type(e).__name__}: {e}")  
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
 @login_required(login_url='/')
