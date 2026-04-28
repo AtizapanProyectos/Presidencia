@@ -8,6 +8,14 @@ class TicketForm(forms.ModelForm):
         empty_label="--- Selecciona una Colonia ---",
         widget=forms.Select(attrs={'style': 'width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;'})
     )
+
+    # AGREGAR ESTE NUEVO CAMPO:
+    colonia_ciudadano = forms.ModelChoiceField(
+        queryset=CatColonia.objects.all().order_by('nombre_colonia'),
+        empty_label="--- Colonia del Solicitante ---",
+        required=False,
+        widget=forms.Select(attrs={'style': 'width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;'})
+    )
     
     # 👇 Ordenado alfabéticamente
     direccion = forms.ModelChoiceField(
@@ -20,12 +28,10 @@ class TicketForm(forms.ModelForm):
         model = TicketAyuda
         # 👇 AQUÍ ESTÁ EL TRUCO: El orden de esta lista define cómo se ve en el HTML 👇
         fields = [
-            'nombre', 'apellido_paterno', 'apellido_materno', 
-            'asunto', 'notas', 'direccion', 'colonia', # <-- Movimos 'direccion' aquí
-            'via_entrada', 'numero_ocp',
-            'calle', 'numero_exterior', 'numero_interior', 
-            'telefono', 'gestor', 'latitud', 'longitud',
-            'email'
+            'nombre', 'apellido_paterno', 'apellido_materno', 'telefono', 'email',
+            'colonia_ciudadano', 'calle_ciudadano', 'numero_exterior_ciudadano', 'numero_interior_ciudadano',
+            'asunto', 'notas', 'direccion', 'via_entrada', 'numero_ocp', 'gestor',
+            'colonia', 'calle', 'numero_exterior', 'numero_interior', 'latitud', 'longitud'
         ]
         
         widgets = {

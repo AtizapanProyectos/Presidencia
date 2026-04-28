@@ -30,6 +30,13 @@ class PerfilAgenteAdmin(admin.ModelAdmin):
 # -----------------------------------------------------
 # 4. Tareas del Ticket (El Checklist 4D)
 # -----------------------------------------------------
+
+# 🔥 Sub-tabla para manejar archivos 1, 2, 3... dentro de cada tarea
+class EvidenciaTareaInline(admin.TabularInline):
+    model = EvidenciaTarea
+    extra = 1  # Fila vacía para subir archivos nuevos rápido
+    readonly_fields = ('fecha_subida',)
+
 class TareaTicketInline(admin.TabularInline):
     model = TareaTicket
     extra = 0
@@ -38,9 +45,17 @@ class TareaTicketInline(admin.TabularInline):
 
 @admin.register(TareaTicket)
 class TareaTicketAdmin(admin.ModelAdmin):
-    list_display = ('id', 'ticket', 'descripcion', 'completada', 'ejecutor')
+    list_display = ('id', 'ticket', 'descripcion', 'completada', 'ejecutor', 'conteo_archivos')
     list_filter = ('completada', 'fecha_creacion')
     search_fields = ('descripcion', 'ticket__folio')
+    
+    # Inyectamos las evidencias múltiples aquí
+    inlines = [EvidenciaTareaInline]
+
+    def conteo_archivos(self, obj):
+        cantidad = obj.evidencias_multiples.count()
+        return f"{cantidad} archivo(s)"
+    conteo_archivos.short_description = 'Archivos Extra'
 
 # -----------------------------------------------------
 # 5. Tickets de Mesa de Ayuda (¡El principal!)
@@ -49,10 +64,7 @@ class TareaTicketAdmin(admin.ModelAdmin):
 class TicketAyudaAdmin(admin.ModelAdmin):
     list_display = ('folio', 'fecha', 'mostrar_nombre_completo', 'asunto', 'direccion', 'status', 'porcentaje_avance')
     list_filter = ('status', 'direccion', 'colonia', 'fecha')
-    
-    # 📝 Agregamos 'email' al buscador para localizar tickets por correo
     search_fields = ('folio', 'nombre', 'apellido_paterno', 'apellido_materno', 'email', 'asunto', 'notas', 'telefono', 'calle')
-    
     list_editable = ('status',) 
     date_hierarchy = 'fecha'
     inlines = [TareaTicketInline]
@@ -62,7 +74,7 @@ class TicketAyudaAdmin(admin.ModelAdmin):
             'fields': (
                 'folio', 
                 ('nombre', 'apellido_paterno', 'apellido_materno'),
-                ('email', 'telefono'), # 📧 Ahora el correo aparece junto al teléfono
+                ('email', 'telefono'),
                 'gestor'
             )
         }),
@@ -88,10 +100,16 @@ class TicketAyudaAdmin(admin.ModelAdmin):
     mostrar_nombre_completo.short_description = 'Ciudadano'
 
 # -----------------------------------------------------
-# 6. Gestores (Copacis y Delegados)
+# 6. Gestores y Registro de Evidencias
 # -----------------------------------------------------
 @admin.register(CopacisyDelegados)
 class CopacisyDelegadosAdmin(admin.ModelAdmin):
     list_display = ('Nombre', 'Apellidos', 'Seccion')
     list_filter = ('Seccion',)
     search_fields = ('Nombre', 'Apellidos', 'Seccion')
+
+@admin.register(EvidenciaTarea)
+class EvidenciaTareaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'tarea', 'archivo', 'fecha_subida')
+    list_filter = ('fecha_subida',)
+    search_fields = ('tarea__descripcion', 'archivo')

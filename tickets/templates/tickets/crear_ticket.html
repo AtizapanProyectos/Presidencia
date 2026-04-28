@@ -53,7 +53,7 @@
         .btn-cancelar { background: #FFFFFF; border: 1px solid #CBD5E1; color: var(--text-main); box-shadow: var(--shadow-card); }
         .btn-cancelar:hover { background: var(--danger-light); color: var(--danger); border-color: #FECACA; transform: translateY(-2px); }
         
-        .btn-guardar { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #FFFFFF; width: 100%; font-size: 1.05rem; padding: 18px; margin-top: 30px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); }
+        .btn-guardar { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #FFFFFF; width: 100%; font-size: 1.05rem; padding: 18px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); margin-top: 40px; }
         .btn-guardar:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(15, 23, 42, 0.3); background: var(--primary); }
 
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 35px; }
@@ -81,8 +81,10 @@
         
         .django-form p:has(textarea),
         .django-form p:has(select[name="colonia"]),
+        .django-form p:has(select[name="colonia_ciudadano"]),
         .django-form p:has(select[name="direccion"]),
         .django-form p:has(input[name="calle"]),
+        .django-form p:has(input[name="calle_ciudadano"]),
         .django-form p:has(input[name="gestor"]),
         .django-form p:has(input[name="numero_ocp"]),
         .django-form p:has(input[name="asunto"]) {
@@ -135,9 +137,6 @@
         }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .search-google-container { margin-bottom: 5px; width: 100%; }
-
-        /* Campos ocultos al ciudadano */
         .django-form p:has(input[name="latitud"]),
         .django-form p:has(input[name="longitud"]),
         .django-form p:has(input[name="calle"]),
@@ -157,7 +156,6 @@
             box-shadow: 0 4px 15px rgba(15,23,42,0.1);
         }
         
-        /* Animación de Gemini */
         @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
     </style>
@@ -184,27 +182,79 @@
                     <p>{{ formulario.nombre.label_tag }} {{ formulario.nombre }}</p>
                     <p>{{ formulario.apellido_paterno.label_tag }} {{ formulario.apellido_paterno }}</p>
                     <p>{{ formulario.apellido_materno.label_tag }} {{ formulario.apellido_materno }}</p>
+                    <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
+                    <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
+
+                    <div style="grid-column: span 2; margin-top: 15px;">
+                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Dirección del Ciudadano (Opcional)</h4>
+                    </div>
+                    
+                    <div style="grid-column: span 2; margin-bottom: 10px;">
+                        <div id="buscador-ciudadano"></div>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-bottom: 10px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
+                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                            ¿Tienes un Link de Google Maps del ciudadano? (Opcional):
+                        </label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="link_maps_ciudadano" placeholder="Pega aquí el enlace de Maps del ciudadano..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
+                            <button type="button" id="btn_procesar_link_ciudadano" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
+                                Extraer Dirección
+                            </button>
+                        </div>
+                        <div id="msg_link_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
+                        <div id="msg_groq_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+                    </div>
+                    
+                    <p>{{ formulario.colonia_ciudadano.label_tag }} {{ formulario.colonia_ciudadano }}</p>
+                    <p>{{ formulario.calle_ciudadano.label_tag }} {{ formulario.calle_ciudadano }}</p>
+                    <p>{{ formulario.numero_exterior_ciudadano.label_tag }} {{ formulario.numero_exterior_ciudadano }}</p>
+                    <p>{{ formulario.numero_interior_ciudadano.label_tag }} {{ formulario.numero_interior_ciudadano }}</p>
+
+                    <div style="grid-column: span 2; background: #FFFBEB; padding: 15px; border-radius: 12px; border: 1px dashed #F59E0B; margin-top: 10px; margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #b45309; cursor: pointer; font-size: 0.9rem;">
+                            <input type="checkbox" id="chk_misma_direccion" style="width: 18px; height: 18px; accent-color: #D97706;">
+                            La afectación a reportar es en esta misma dirección (Copiar al mapa táctico)
+                        </label>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 5px;">
+                        <h4 style="color: var(--gold-accent); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Detalles de la Petición</h4>
+                    </div>
+
                     <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
                     <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
 
-                    <div style="grid-column: span 2;">
-                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación: </label>
-                        <div id="contenedor-buscador-google"></div>
+                    <div style="grid-column: span 2; margin-top: 10px; margin-bottom: 10px;">
+                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación de la afectación (Mueve el mapa o busca): </label>
+                        <div id="buscador-afectacion"></div>
                     </div>
+
+                    <div style="grid-column: span 2; margin-bottom: 15px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
+                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                            ¿Tienes un Link de Google Maps? (Opcional):
+                        </label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="link_maps" placeholder="Pega aquí el enlace de Maps..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
+                            <button type="button" id="btn_procesar_link" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
+                                Extraer Texto y Ubicación
+                            </button>
+                        </div>
+                        <div id="msg_link" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
+                        <div id="msg_groq_afectacion" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+                    </div>
+
+                    <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
+                    <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
                     <p>{{ formulario.via_entrada.label_tag }} {{ formulario.via_entrada }}</p>
                     <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
-                    <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
-                    
-                    <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
-                    
-                    <p>{{ formulario.colonia.label_tag }} {{ formulario.colonia }}</p>
-                    <p>{{ formulario.calle.label_tag }} {{ formulario.calle }}</p>
-                    <p>{{ formulario.numero_exterior.label_tag }} {{ formulario.numero_exterior }}</p>
-                    <p>{{ formulario.numero_interior.label_tag }} {{ formulario.numero_interior }}</p>
-                    <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
-                    <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
 
                     <div style="display: none;">
+                        {{ formulario.colonia }}
+                        {{ formulario.calle }}
+                        {{ formulario.numero_exterior }}
+                        {{ formulario.numero_interior }}
                         {{ formulario.latitud }}
                         {{ formulario.longitud }}
                     </div>
@@ -227,114 +277,119 @@
     </div>
 
     <script>
-        // ==========================================
-        // 🤖 MOTOR IA: GEMINI AUTOCORRECCIÓN REAL
-        // ==========================================
+        let coordsCiudadanoTemp = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            // 🔥 FIX DEL ERROR: "An invalid form control is not focusable"
+            // Le quitamos el atributo "required" a todos los campos ocultos de la dirección
+            // para que el navegador no bloquee el formulario al darle "Generar Solicitud"
+            const camposOcultos = ['colonia', 'calle', 'numero_exterior', 'numero_interior', 'latitud', 'longitud'];
+            camposOcultos.forEach(nombre => {
+                let campo = document.querySelector(`[name="${nombre}"]`);
+                if (campo) campo.removeAttribute('required');
+            });
+
+            const chkMismaDireccion = document.getElementById('chk_misma_direccion');
+            if(chkMismaDireccion) {
+                chkMismaDireccion.addEventListener('change', function() {
+                    const colC = document.querySelector('select[name="colonia_ciudadano"]');
+                    const calC = document.querySelector('input[name="calle_ciudadano"]');
+                    const extC = document.querySelector('input[name="numero_exterior_ciudadano"]');
+                    const intC = document.querySelector('input[name="numero_interior_ciudadano"]');
+
+                    const colP = document.querySelector('select[name="colonia"]');
+                    const calP = document.querySelector('input[name="calle"]');
+                    const extP = document.querySelector('input[name="numero_exterior"]');
+                    const intP = document.querySelector('input[name="numero_interior"]');
+
+                    if (this.checked) {
+                        if(calC) calP.value = calC.value;
+                        if(extC) extP.value = extC.value;
+                        if(intC) intP.value = intC.value;
+                        
+                        if(colC && colC.selectedIndex > 0) { colP.value = colC.value; }
+
+                        if (coordsCiudadanoTemp) {
+                            marcador.setLatLng([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng]);
+                            map.flyTo([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng], 18, { duration: 1.5 });
+                            actualizarInputs(coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng);
+                        } else if (colC && colC.selectedIndex > 0) {
+                            if (typeof volarAColonia === "function") volarAColonia();
+                        }
+                        this.parentElement.style.color = 'var(--success)';
+                    } else {
+                        this.parentElement.style.color = '#b45309';
+                    }
+                });
+            }
+        });
+
         function aplicarIAOrtografica(campo) {
             if (!campo) return;
-            
             let indicadorIA = document.createElement('div');
             indicadorIA.style.cssText = 'position:absolute; right:15px; top:35px; font-size:0.65rem; color:#8B5CF6; font-weight:700; opacity:0; transition:opacity 0.3s ease; display:flex; align-items:center; background: rgba(255,255,255,0.95); padding: 4px 10px; border-radius: 10px; pointer-events: none; z-index:10; box-shadow: 0 2px 10px rgba(0,0,0,0.05);';
             campo.parentElement.appendChild(indicadorIA);
-            
             let timeoutIA;
-            // Extraemos el token de Django para seguridad
             let csrfElem = document.querySelector('[name=csrfmiddlewaretoken]');
             const csrfToken = csrfElem ? csrfElem.value : '';
             
             campo.addEventListener('input', function() {
                 indicadorIA.style.opacity = '1';
-                indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; animation: parpadeo 1.5s infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg> Gemini analizando...';
-                
+                indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; animation: parpadeo 2.2s infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg> Grok analizando...';
                 clearTimeout(timeoutIA);
-                
-                // Esperamos 1.5 segundos después de que el usuario deja de escribir para no saturar la API
                 timeoutIA = setTimeout(async () => {
                     let textoOriginal = this.value.trim();
-                    
-                    if(textoOriginal.length < 5) {
-                        indicadorIA.style.opacity = '0';
-                        return;
-                    }
-
+                    if(textoOriginal.length < 5) { indicadorIA.style.opacity = '0'; return; }
                     try {
                         let response = await fetch('/api/corregir-texto/', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken
-                            },
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                             body: JSON.stringify({ texto: textoOriginal })
                         });
-                        
                         let data = await response.json();
-                        
                         if (data.texto_corregido && data.texto_corregido !== textoOriginal) {
-                            // Actualizamos el texto con la corrección real de la IA
                             this.value = data.texto_corregido;
-                            
-                            // Efecto visual para que el usuario sepa que se corrigió
                             this.style.transition = 'background-color 0.4s';
                             this.style.backgroundColor = '#F5F3FF'; 
                             setTimeout(() => { this.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1500);
                         }
-                        
                         indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; stroke:#10B981;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <span style="color:#10B981;">Texto impecable</span>';
                         setTimeout(() => { indicadorIA.style.opacity = '0'; }, 2500);
-                        
-                    } catch(err) {
-                        console.error("Error contactando a Gemini:", err);
-                        indicadorIA.style.opacity = '0';
-                    }
+                    } catch(err) { console.error("Error Groq:", err); indicadorIA.style.opacity = '0'; }
                 }, 1500); 
             });
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            // Lógica Vía de Entrada vs OCP
             const selectVia = document.querySelector('select[name="via_entrada"]');
             const inputOcp = document.querySelector('input[name="numero_ocp"]');
-            
             if (selectVia && inputOcp) {
                 const contenedorOcp = inputOcp.closest('p');
-
                 function toggleOcp() {
                     if (selectVia.value === 'Oficio') {
-                        contenedorOcp.style.setProperty('display', 'flex', 'important');
-                        inputOcp.required = true; 
+                        contenedorOcp.style.setProperty('display', 'flex', 'important'); inputOcp.required = true; 
                     } else {
-                        contenedorOcp.style.setProperty('display', 'none', 'important');
-                        inputOcp.value = ''; 
-                        inputOcp.required = false;
+                        contenedorOcp.style.setProperty('display', 'none', 'important'); inputOcp.value = ''; inputOcp.required = false;
                     }
                 }
-                selectVia.addEventListener('change', toggleOcp);
-                toggleOcp();
+                selectVia.addEventListener('change', toggleOcp); toggleOcp();
             }
 
-            // Animaciones de focus
             const inputs = document.querySelectorAll('.formulario-container input, .formulario-container select, .formulario-container textarea');
             inputs.forEach(el => {
                 el.addEventListener('focus', function() { this.parentElement.style.transform = 'scale(1.01)'; this.parentElement.style.transition = 'transform 0.2s'; });
                 el.addEventListener('blur', function() { this.parentElement.style.transform = 'scale(1)'; });
             });
 
-            // INICIALIZAR IA DE AUTOCORRECCIÓN EN ASUNTO Y NOTAS
             let campoAsunto = document.querySelector('input[name="asunto"]');
             let campoNotas = document.querySelector('textarea[name="notas"]');
-            
             if (campoAsunto) aplicarIAOrtografica(campoAsunto);
             if (campoNotas) aplicarIAOrtografica(campoNotas);
         });
 
-        // ==========================================
-        // 🗺️ INICIALIZACIÓN DEL MAPA LEAFLET
-        // ==========================================
         var map = L.map('mapa').setView([19.5542, -99.2458], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CartoDB'
-        }).addTo(map);
-
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB' }).addTo(map);
         var iconRed = new L.Icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41]});
         var marcador = L.marker([19.5542, -99.2458], {draggable: true, icon: iconRed}).addTo(map);
 
@@ -345,21 +400,10 @@
             if(iLng) iLng.value = lng.toFixed(6);
         }
 
-        marcador.on('dragend', function(e) {
-            var posicion = marcador.getLatLng();
-            actualizarInputs(posicion.lat, posicion.lng);
-        });
-
-        map.on('click', function(e) {
-            marcador.setLatLng(e.latlng);
-            actualizarInputs(e.latlng.lat, e.latlng.lng);
-        });
-
+        marcador.on('dragend', function(e) { var posicion = marcador.getLatLng(); actualizarInputs(posicion.lat, posicion.lng); });
+        map.on('click', function(e) { marcador.setLatLng(e.latlng); actualizarInputs(e.latlng.lat, e.latlng.lng); });
         actualizarInputs(19.5542, -99.2458);
 
-        // ==========================================
-        // 🧠 CEREBRO SUPER PREDICTIVO 4D 
-        // ==========================================
         const diccionarioAreas = {
             'SAPASA': ['agua', 'fuga', 'tubo', 'drenaje', 'inundación', 'inundacion', 'alcantarilla', 'pipa', 'coladera', 'desazolve', 'sin servicio', 'falta de agua', 'medidor', 'recibo de agua', 'charco', 'dren', 'saneamiento', 'registro abierto', 'tapa rota'],
             'SERVICIOS PÚBLICOS': ['luz', 'lámpara', 'lampara', 'luminaria', 'árbol', 'arbol', 'basura', 'barrido', 'parque', 'poda', 'ramas', 'alumbrado', 'camión de basura', 'camion', 'panteón', 'panteon', 'rastro', 'animal muerto', 'perro muerto', 'limpieza', 'jardín', 'jardin', 'maleza', 'pasto', 'animal'],
@@ -384,9 +428,7 @@
             let campoNotas = document.querySelector('textarea[name="notas"]');
             let campoDireccion = document.querySelector('select[name="direccion"]'); 
             let avisoIA = document.getElementById('mensaje-prediccion');
-
             if (!campoAsunto || !campoNotas || !campoDireccion) return;
-
             let textoCompleto = (campoAsunto.value + " " + campoNotas.value).toLowerCase();
 
             for (const [nombreAreaBD, palabrasClave] of Object.entries(diccionarioAreas)) {
@@ -411,9 +453,6 @@
             if(notas) notas.addEventListener('input', predecirAreaAutomática);
         });
 
-        // =================================================================
-        // 🚀 GEOJSON LOCAL Y ANIMACIONES DE VUELO
-        // =================================================================
         let geojsonColoniasData = null;
         let capaColoniaResaltada = null;
 
@@ -423,21 +462,14 @@
                 geojsonColoniasData = data;
                 fetch('/static/geojson/atizapan.geojson')
                     .then(res => res.json())
-                    .then(atizapanData => {
-                        L.geoJSON(atizapanData, { style: { color: "#0F172A", weight: 3, fillOpacity: 0 } }).addTo(map);
-                    }).catch(()=>console.log("No se cargó contorno municipio"));
-                
-                L.geoJSON(data, {
-                    style: { color: "#94A3B8", weight: 1, fillColor: "#CBD5E1", fillOpacity: 0.05 }
-                }).addTo(map);
-            })
-            .catch(err => console.error("Error al cargar el GeoJSON:", err));
+                    .then(atizapanData => { L.geoJSON(atizapanData, { style: { color: "#0F172A", weight: 3, fillOpacity: 0 } }).addTo(map); })
+                    .catch(()=>console.log("No se cargó contorno municipio"));
+                L.geoJSON(data, { style: { color: "#94A3B8", weight: 1, fillColor: "#CBD5E1", fillOpacity: 0.05 } }).addTo(map);
+            }).catch(err => console.error("Error GeoJSON:", err));
 
         document.addEventListener('DOMContentLoaded', function() {
             const selectColonia = document.querySelector('select[name="colonia"]'); 
-            if(selectColonia) {
-                selectColonia.addEventListener('change', volarAColonia);
-            }
+            if(selectColonia) selectColonia.addEventListener('change', volarAColonia);
         });
 
         function volarAColonia(soloResaltar = false) {
@@ -447,118 +479,444 @@
             const nombreColoniaElegida = selectColonia.options[selectColonia.selectedIndex].text.trim().toLowerCase();
             if (nombreColoniaElegida.includes('---')) return;
 
-            const featureEncontrado = geojsonColoniasData.features.find(f => 
-                f.properties.Name.trim().toLowerCase() === nombreColoniaElegida
-            );
-
+            const featureEncontrado = geojsonColoniasData.features.find(f => f.properties.Name.trim().toLowerCase() === nombreColoniaElegida);
             if(featureEncontrado) {
                 if(capaColoniaResaltada) { map.removeLayer(capaColoniaResaltada); }
-
-                capaColoniaResaltada = L.geoJSON(featureEncontrado, {
-                    style: { color: '#8B5CF6', weight: 3, fillColor: '#C4B5FD', fillOpacity: 0.45 }
-                }).addTo(map);
-
+                capaColoniaResaltada = L.geoJSON(featureEncontrado, { style: { color: '#8B5CF6', weight: 3, fillColor: '#C4B5FD', fillOpacity: 0.45 } }).addTo(map);
                 if (!soloResaltar) {
                     map.flyToBounds(capaColoniaResaltada.getBounds(), { padding: [30, 30], duration: 1.5, easeLinearity: 0.25 });
                     let centro = capaColoniaResaltada.getBounds().getCenter();
-                    marcador.setLatLng(centro);
-                    actualizarInputs(centro.lat, centro.lng);
+                    marcador.setLatLng(centro); actualizarInputs(centro.lat, centro.lng);
                 }
             }
         }
 
-        // =================================================================
-        // 🚀 INTEGRACIÓN GOOGLE PLACES (NEW) - PLACES API (NEW) 2026
-        // =================================================================
-        window.initGoogleSearch = async function() {
+        // ============================================================
+        // 🔑 GROQ API KEY — reemplaza con tu clave real
+        // ============================================================
+        const GROQ_API_KEY = "{{ groq_api_key }}"; // <-- ¡Así es como se hace!
 
-            await google.maps.importLibrary("places");
-
-            const autocomplete = new google.maps.places.PlaceAutocompleteElement({
-                componentRestrictions: { country: 'mx' }
+        // ============================================================
+        // 🤖 LLAMADA DIRECTA A GROQ DESDE EL FRONTEND
+        // ============================================================
+        async function llamarGroqAPI(prompt) {
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + GROQ_API_KEY
+                },
+                body: JSON.stringify({
+                    model: "llama3-8b-8192",
+                    temperature: 0,
+                    max_tokens: 300,
+                    messages: [{ role: "user", content: prompt }]
+                })
             });
+            if (!response.ok) throw new Error("Groq HTTP " + response.status);
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content || "";
+        }
 
-            const contenedor = document.getElementById('contenedor-buscador-google');
-            contenedor.appendChild(autocomplete);
+        // ============================================================
+        // 🏘️ GROQ EXTRAE TODOS LOS DATOS: colonia, calle, número
+        //    Esta función se llama SIEMPRE (no sólo como fallback)
+        // ============================================================
+        async function procesarConGroq(infoGoogle, esCiudadano, latVal, lngVal) {
+            const prefijo = esCiudadano ? "_ciudadano" : "";
+            const inputCalle    = document.querySelector(`input[name="calle${prefijo}"]`);
+            const inputNumExt   = document.querySelector(`input[name="numero_exterior${prefijo}"]`);
+            const selectColonia = document.querySelector(`select[name="colonia${prefijo}"]`);
+            const msgGroqId     = esCiudadano ? 'msg_groq_ciudadano' : 'msg_groq_afectacion';
+            const msgGroqEl     = document.getElementById(msgGroqId);
 
-            autocomplete.addEventListener('gmp-select', async (e) => {
-                
-                const placePrediction = e.placePrediction;
-                if (!placePrediction) return;
+            if (!selectColonia) return;
 
-                const place = placePrediction.toPlace();
+            // Mostrar indicador de carga
+            if (msgGroqEl) {
+                msgGroqEl.innerHTML = '🤖 Groq analizando dirección...';
+                msgGroqEl.style.color = '#8B5CF6';
+                msgGroqEl.style.display = 'block';
+            }
 
-                try {
-                    await place.fetchFields({ 
-                        fields: ['displayName', 'location', 'addressComponents'] 
-                    });
-                } catch (err) {
-                    console.error('Error al obtener detalles del lugar:', err);
-                    return;
-                }
+            const opcionesColonia = Array.from(selectColonia.options)
+                .map(o => o.text.trim())
+                .filter(t => !t.includes('---') && t.length > 1);
+            const coloniasList = opcionesColonia.join('\n');
 
-                const latGoogle = place.location.lat();
-                const lngGoogle = place.location.lng();
+            const prompt = `Eres un asistente de captura de datos para el municipio de Atizapán de Zaragoza, Estado de México.
+Tengo la siguiente información de una dirección obtenida de Google Maps:
+- Colonia detectada por Google: "${infoGoogle.coloniaGoogle || ''}"
+- Calle detectada: "${infoGoogle.calle || ''}"
+- Número exterior detectado: "${infoGoogle.numero_ext || ''}"
+- Latitud: ${latVal || ''}
+- Longitud: ${lngVal || ''}
 
-                marcador.setLatLng([latGoogle, lngGoogle]);
-                map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
-                actualizarInputs(latGoogle, lngGoogle);
+El catálogo de colonias registradas en el sistema es el siguiente (elige EXACTAMENTE una de estas):
+${coloniasList}
 
-                let calle       = "";
-                let numero_ext  = "";
-                let coloniaGoogle = "";
+Tu tarea:
+1. Analiza la colonia de Google, las coordenadas y la calle para determinar cuál colonia del catálogo corresponde mejor.
+2. Corrige o confirma el nombre de la calle (quita abreviaciones, usa nombre completo).
+3. Confirma o extrae el número exterior si existe.
 
-                if (place.addressComponents) {
-                    place.addressComponents.forEach(comp => {
-                        const tipos = comp.types;
-                        if (tipos.includes("route"))              { calle        = comp.longText; }
-                        if (tipos.includes("street_number"))      { numero_ext   = comp.longText; }
-                        if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) {
-                            coloniaGoogle = comp.longText;
-                        }
-                    });
-                }
+Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de código, con este formato exacto:
+{
+  "colonia": "NOMBRE_EXACTO_DEL_CATALOGO_O_VACIO",
+  "calle": "NOMBRE_CALLE_CORREGIDO",
+  "numero_exterior": "NUMERO_O_VACIO"
+}`;
 
-                if (!calle && place.displayName) { calle = place.displayName; }
+            try {
+                const rawText = await llamarGroqAPI(prompt);
+                const cleanText = rawText.replace(/```json|```/g, '').trim();
+                let parsed = null;
+                try { parsed = JSON.parse(cleanText); } catch(e) { console.error('JSON parse error Groq:', e, rawText); }
 
-                const inputCalle   = document.querySelector('input[name="calle"]');
-                const inputNumExt  = document.querySelector('input[name="numero_exterior"]');
-                const selectColonia = document.querySelector('select[name="colonia"]');
-
-                if (inputCalle && calle) {
-                    inputCalle.value = calle;
-                    flashVerde(inputCalle);
-                }
-                if (inputNumExt && numero_ext) {
-                    inputNumExt.value = numero_ext;
-                    flashVerde(inputNumExt);
-                }
-
-                if (coloniaGoogle && selectColonia) {
-                    const coloniaBuscada = coloniaGoogle.toLowerCase().trim();
-                    let encontrado = false;
-                    for (let j = 0; j < selectColonia.options.length; j++) {
-                        const opTexto = selectColonia.options[j].text.toLowerCase().trim();
-                        if (opTexto.includes(coloniaBuscada) || coloniaBuscada.includes(opTexto)) {
-                            selectColonia.selectedIndex = j;
-                            flashVerde(selectColonia);
-                            encontrado = true;
-                            if (typeof volarAColonia === "function") volarAColonia(true);
-                            break;
-                        }
+                if (parsed) {
+                    // 1️⃣ Llenar calle
+                    if (parsed.calle && parsed.calle.trim() !== '' && inputCalle) {
+                        inputCalle.value = parsed.calle.trim();
+                        flashVerde(inputCalle);
                     }
-                    if (!encontrado) {
-                        const palabrasBuscada = coloniaBuscada.split(/\s+/);
+                    // 2️⃣ Llenar número exterior
+                    if (parsed.numero_exterior && parsed.numero_exterior.trim() !== '' && inputNumExt) {
+                        inputNumExt.value = parsed.numero_exterior.trim();
+                        flashVerde(inputNumExt);
+                    }
+                    // 3️⃣ Seleccionar colonia del catálogo
+                    if (parsed.colonia && parsed.colonia.trim() !== '') {
+                        const coloniaGroq = parsed.colonia.toLowerCase().trim();
+                        let coloniaEncontrada = false;
+                        // Búsqueda exacta primero
                         for (let j = 0; j < selectColonia.options.length; j++) {
                             const opTexto = selectColonia.options[j].text.toLowerCase().trim();
-                            if (palabrasBuscada.some(p => p.length > 3 && opTexto.includes(p))) {
-                                selectColonia.selectedIndex = j;
-                                flashVerde(selectColonia);
-                                if (typeof volarAColonia === "function") volarAColonia(true);
+                            if (opTexto === coloniaGroq) {
+                                selectColonia.selectedIndex = j; flashVerde(selectColonia);
+                                coloniaEncontrada = true;
+                                if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
                                 break;
                             }
                         }
+                        // Búsqueda parcial si no hubo exacta
+                        if (!coloniaEncontrada) {
+                            for (let j = 0; j < selectColonia.options.length; j++) {
+                                const opTexto = selectColonia.options[j].text.toLowerCase().trim();
+                                if (opTexto.includes(coloniaGroq) || coloniaGroq.includes(opTexto)) {
+                                    selectColonia.selectedIndex = j; flashVerde(selectColonia);
+                                    coloniaEncontrada = true;
+                                    if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (coloniaEncontrada && msgGroqEl) {
+                            msgGroqEl.innerHTML = '✅ Groq identificó: <strong>' + selectColonia.options[selectColonia.selectedIndex].text + '</strong>';
+                            msgGroqEl.style.color = '#10B981';
+                            setTimeout(() => { msgGroqEl.style.display = 'none'; }, 5000);
+                        } else if (!coloniaEncontrada && msgGroqEl) {
+                            msgGroqEl.innerHTML = '⚠️ Groq sugirió "' + parsed.colonia + '" — no está en catálogo. Selecciona manualmente.';
+                            msgGroqEl.style.color = '#D97706';
+                        }
+                    } else if (msgGroqEl) {
+                        msgGroqEl.innerHTML = '⚠️ Groq no identificó colonia. Selecciona manualmente.';
+                        msgGroqEl.style.color = '#D97706';
                     }
+                } else if (msgGroqEl) {
+                    msgGroqEl.innerHTML = '❌ No se pudo interpretar la respuesta de Groq. Revisa manualmente.';
+                    msgGroqEl.style.color = 'var(--danger)';
+                }
+            } catch(err) {
+                console.error('Error Groq API:', err);
+                if (msgGroqEl) {
+                    msgGroqEl.innerHTML = '❌ Error al conectar con Groq. Verifica la API key o revisa manualmente.';
+                    msgGroqEl.style.color = 'var(--danger)';
+                }
+            }
+        }
+
+        // ============================================================
+        // 🗺️ PROCESAR LUGAR DE GOOGLE → SIEMPRE pasa por Groq
+        // ============================================================
+        function procesarLugarGoogle(place, esCiudadano) {
+            let calle = "", numero_ext = "", coloniaGoogle = "";
+            const componentes = place.addressComponents || place.address_components;
+
+            if (componentes) {
+                componentes.forEach(comp => {
+                    const tipos = comp.types;
+                    const valor = comp.longText || comp.long_name;
+                    if (tipos.includes("route"))              { calle        = valor; }
+                    if (tipos.includes("street_number"))      { numero_ext   = valor; }
+                    if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) { coloniaGoogle = valor; }
+                });
+            }
+            if (!calle && place.name) { calle = place.name; }
+            if (!calle && place.displayName) { calle = place.displayName; }
+
+            // Obtener coordenadas actuales del marcador
+            const prefijo = esCiudadano ? "_ciudadano" : "";
+            let latVal = document.querySelector('input[name="latitud"]')?.value || '';
+            let lngVal = document.querySelector('input[name="longitud"]')?.value || '';
+
+            // 🤖 SIEMPRE usamos Groq para extraer/confirmar colonia, calle y número
+            procesarConGroq({ coloniaGoogle, calle, numero_ext }, esCiudadano, latVal, lngVal);
+        }
+
+        // compat: función vacía para no romper referencias antiguas
+        async function llamarGroqDireccion() {}
+
+        window.initGoogleSearch = async function() {
+            await google.maps.importLibrary("places");
+            const geocoder = new google.maps.Geocoder();
+
+            const autoCiudadano = new google.maps.places.PlaceAutocompleteElement({ componentRestrictions: { country: 'mx' } });
+            document.getElementById('buscador-ciudadano').appendChild(autoCiudadano);
+            autoCiudadano.addEventListener('gmp-select', async (e) => {
+                if (!e.placePrediction) return;
+                const place = e.placePrediction.toPlace();
+                try {
+                    await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
+                    coordsCiudadanoTemp = { lat: place.location.lat(), lng: place.location.lng() };
+                    procesarLugarGoogle(place, true);
+                } catch (err) { console.error(err); }
+            });
+
+            const autoAfectacion = new google.maps.places.PlaceAutocompleteElement({ componentRestrictions: { country: 'mx' } });
+            document.getElementById('buscador-afectacion').appendChild(autoAfectacion);
+            autoAfectacion.addEventListener('gmp-select', async (e) => {
+                if (!e.placePrediction) return;
+                const place = e.placePrediction.toPlace();
+                try {
+                    await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
+                    const latGoogle = place.location.lat(); const lngGoogle = place.location.lng();
+                    marcador.setLatLng([latGoogle, lngGoogle]); map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
+                    actualizarInputs(latGoogle, lngGoogle);
+                    procesarLugarGoogle(place, false);
+                } catch (err) { console.error(err); }
+            });
+
+            // ============================================================
+            // 📍 LINK DE MAPS — AFECTACIÓN (mueve el mapa y el pin)
+            // Completamente independiente del ciudadano
+            // ============================================================
+            document.getElementById('btn_procesar_link').addEventListener('click', async function() {
+                const url = document.getElementById('link_maps').value.trim();
+                const msgBox = document.getElementById('msg_link');
+                msgBox.style.display = 'none';
+                msgBox.style.color = 'var(--danger)';
+
+                if (!url) return;
+
+                if (url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
+                    msgBox.innerText = "⚠️ Por favor pega el enlace largo (Abre el link en tu navegador y copia la URL completa de la barra superior).";
+                    msgBox.style.display = 'block';
+                    return;
+                }
+
+                // Extraer coordenadas exactas del pin (!3d !4d)
+                let latAfec = null, lngAfec = null;
+                const m1 = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                if (m1) { latAfec = parseFloat(m1[1]); lngAfec = parseFloat(m1[2]); }
+                else {
+                    const m2 = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (m2) { latAfec = parseFloat(m2[1]); lngAfec = parseFloat(m2[2]); }
+                }
+
+                if (latAfec && lngAfec) {
+                    // Coordenadas exactas del PIN → mover mapa y geocodificar como AFECTACIÓN
+                    marcador.setLatLng([latAfec, lngAfec]);
+                    map.flyTo([latAfec, lngAfec], 18, { duration: 1.5 });
+                    actualizarInputs(latAfec, lngAfec);
+                    // ✅ Limpiar campo del link después de usarlo
+                    document.getElementById('link_maps').value = '';
+                    const geocoderAfec = new google.maps.Geocoder();
+                    geocoderAfec.geocode({ location: { lat: latAfec, lng: lngAfec } }, (results, status) => {
+                        if (status === "OK" && results[0]) {
+                            procesarLugarGoogle(results[0], false); // false = afectación, pin ya está puesto
+                        } else {
+                            msgBox.innerText = "Ubicación exacta encontrada, pero no se extrajo el nombre de la calle.";
+                            msgBox.style.display = 'block';
+                        }
+                    });
+                    return;
+                }
+
+                // Sin coordenadas → intentar con texto del enlace
+                let queryAfec = null, latVistaAfec = null, lngVistaAfec = null;
+                const mp = url.match(/\/place\/([^\/@?]+)/);
+                if (mp) { queryAfec = decodeURIComponent(mp[1].replace(/\+/g, ' ')); }
+                else {
+                    const ms = url.match(/\/search\/([^\/@?]+)/);
+                    if (ms) { queryAfec = decodeURIComponent(ms[1].replace(/\+/g, ' ')); }
+                }
+                const mv = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (mv) { latVistaAfec = parseFloat(mv[1]); lngVistaAfec = parseFloat(mv[2]); }
+
+                if (queryAfec) {
+                    try {
+                        const req = { textQuery: queryAfec, fields: ['displayName', 'location', 'addressComponents'] };
+                        if (latVistaAfec && lngVistaAfec) {
+                            req.locationBias = { circle: { center: { lat: latVistaAfec, lng: lngVistaAfec }, radius: 5000 } };
+                        }
+                        const { places } = await google.maps.places.Place.searchByText(req);
+                        if (places && places.length > 0) {
+                            const pl = places[0];
+                            const pLat = pl.location.lat(), pLng = pl.location.lng();
+                            marcador.setLatLng([pLat, pLng]);
+                            map.flyTo([pLat, pLng], 18, { duration: 1.5 });
+                            actualizarInputs(pLat, pLng);
+                            document.getElementById('link_maps').value = '';
+                            procesarLugarGoogle(pl, false); // false = afectación, pin puesto
+                        } else if (latVistaAfec && lngVistaAfec) {
+                            marcador.setLatLng([latVistaAfec, lngVistaAfec]);
+                            map.flyTo([latVistaAfec, lngVistaAfec], 18, { duration: 1.5 });
+                            actualizarInputs(latVistaAfec, lngVistaAfec);
+                            const geocoderAfec2 = new google.maps.Geocoder();
+                            geocoderAfec2.geocode({ location: { lat: latVistaAfec, lng: lngVistaAfec } }, (results, status) => {
+                                if (status === "OK" && results[0]) { procesarLugarGoogle(results[0], false); }
+                                else { msgBox.innerText = "Ubicación encontrada, pero sin nombre de calle."; msgBox.style.display = 'block'; }
+                            });
+                        } else {
+                            msgBox.innerText = "❌ Google no encontró el lugar exacto de este enlace.";
+                            msgBox.style.display = 'block';
+                        }
+                    } catch (err) {
+                        console.error("Error Places API afectación:", err);
+                        msgBox.innerText = "❌ Hubo un error de conexión con la API de Google.";
+                        msgBox.style.display = 'block';
+                    }
+                } else if (latVistaAfec && lngVistaAfec) {
+                    marcador.setLatLng([latVistaAfec, lngVistaAfec]);
+                    map.flyTo([latVistaAfec, lngVistaAfec], 18, { duration: 1.5 });
+                    actualizarInputs(latVistaAfec, lngVistaAfec);
+                    const geocoderAfec3 = new google.maps.Geocoder();
+                    geocoderAfec3.geocode({ location: { lat: latVistaAfec, lng: lngVistaAfec } }, (results, status) => {
+                        if (status === "OK" && results[0]) { procesarLugarGoogle(results[0], false); }
+                        else { msgBox.innerText = "Ubicación encontrada, pero sin nombre de calle."; msgBox.style.display = 'block'; }
+                    });
+                } else {
+                    msgBox.innerText = "❌ No se detectó ninguna ubicación o texto válido en el enlace.";
+                    msgBox.style.display = 'block';
+                }
+            });
+
+            // ============================================================
+            // 🏠 LINK DE MAPS — CIUDADANO (NO toca el mapa ni el pin)
+            // Completamente independiente de la afectación
+            // ============================================================
+            document.getElementById('btn_procesar_link_ciudadano').addEventListener('click', async function() {
+                const url = document.getElementById('link_maps_ciudadano').value.trim();
+                const msgBox = document.getElementById('msg_link_ciudadano');
+                const msgGroq = document.getElementById('msg_groq_ciudadano');
+                msgBox.style.display = 'none';
+                msgBox.style.color = 'var(--danger)';
+                msgGroq.style.display = 'none';
+
+                if (!url) return;
+
+                if (url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
+                    msgBox.innerText = "⚠️ Por favor pega el enlace largo (Abre el link en tu navegador y copia la URL completa).";
+                    msgBox.style.display = 'block';
+                    return;
+                }
+
+                // Extraer coordenadas exactas del pin (!3d !4d)
+                let latCiu = null, lngCiu = null;
+                const c1 = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+                if (c1) { latCiu = parseFloat(c1[1]); lngCiu = parseFloat(c1[2]); }
+                else {
+                    const c2 = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (c2) { latCiu = parseFloat(c2[1]); lngCiu = parseFloat(c2[2]); }
+                }
+
+                if (latCiu && lngCiu) {
+                    // Solo geocodificamos, NUNCA tocamos marcador ni mapa (es ciudadano)
+                    coordsCiudadanoTemp = { lat: latCiu, lng: lngCiu };
+                    const geocoderCiu = new google.maps.Geocoder();
+                    geocoderCiu.geocode({ location: { lat: latCiu, lng: lngCiu } }, (results, status) => {
+                        if (status === "OK" && results[0]) {
+                            procesarLugarGoogle(results[0], true); // true = ciudadano, SIN mover pin
+                            // ✅ Limpiar link después de procesar
+                            document.getElementById('link_maps_ciudadano').value = '';
+                            msgBox.innerText = "✅ Dirección del ciudadano enviada a Groq...";
+                            msgBox.style.color = 'var(--success)';
+                            msgBox.style.display = 'block';
+                            setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 5000);
+                        } else {
+                            msgBox.innerText = "❌ No se pudo obtener la dirección de esas coordenadas.";
+                            msgBox.style.display = 'block';
+                        }
+                    });
+                    return;
+                }
+
+                // Sin coordenadas → intentar con texto del enlace
+                let queryCiu = null, latVistaCiu = null, lngVistaCiu = null;
+                const cp = url.match(/\/place\/([^\/@?]+)/);
+                if (cp) { queryCiu = decodeURIComponent(cp[1].replace(/\+/g, ' ')); }
+                else {
+                    const cs = url.match(/\/search\/([^\/@?]+)/);
+                    if (cs) { queryCiu = decodeURIComponent(cs[1].replace(/\+/g, ' ')); }
+                }
+                const cv = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (cv) { latVistaCiu = parseFloat(cv[1]); lngVistaCiu = parseFloat(cv[2]); }
+
+                if (queryCiu) {
+                    try {
+                        const req = { textQuery: queryCiu, fields: ['displayName', 'location', 'addressComponents'] };
+                        if (latVistaCiu && lngVistaCiu) {
+                            req.locationBias = { circle: { center: { lat: latVistaCiu, lng: lngVistaCiu }, radius: 5000 } };
+                        }
+                        const { places } = await google.maps.places.Place.searchByText(req);
+                        if (places && places.length > 0) {
+                            const pl = places[0];
+                            coordsCiudadanoTemp = { lat: pl.location.lat(), lng: pl.location.lng() };
+                            procesarLugarGoogle(pl, true); // true = ciudadano, NO toca mapa
+                            document.getElementById('link_maps_ciudadano').value = '';
+                            msgBox.innerText = "✅ Dirección del ciudadano enviada a Groq...";
+                            msgBox.style.color = 'var(--success)';
+                            msgBox.style.display = 'block';
+                            setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 5000);
+                        } else if (latVistaCiu && lngVistaCiu) {
+                            coordsCiudadanoTemp = { lat: latVistaCiu, lng: lngVistaCiu };
+                            const geocoderCiu2 = new google.maps.Geocoder();
+                            geocoderCiu2.geocode({ location: { lat: latVistaCiu, lng: lngVistaCiu } }, (results, status) => {
+                                if (status === "OK" && results[0]) {
+                                    procesarLugarGoogle(results[0], true); // true = ciudadano
+                                    msgBox.innerText = "✅ Dirección del ciudadano extraída.";
+                                    msgBox.style.color = 'var(--success)';
+                                    msgBox.style.display = 'block';
+                                    setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 3500);
+                                } else {
+                                    msgBox.innerText = "❌ No se pudo extraer la dirección del enlace.";
+                                    msgBox.style.display = 'block';
+                                }
+                            });
+                        } else {
+                            msgBox.innerText = "❌ Google no encontró el lugar de este enlace.";
+                            msgBox.style.display = 'block';
+                        }
+                    } catch (err) {
+                        console.error("Error Places API ciudadano:", err);
+                        msgBox.innerText = "❌ Error de conexión con Google.";
+                        msgBox.style.display = 'block';
+                    }
+                } else if (latVistaCiu && lngVistaCiu) {
+                    coordsCiudadanoTemp = { lat: latVistaCiu, lng: lngVistaCiu };
+                    const geocoderCiu3 = new google.maps.Geocoder();
+                    geocoderCiu3.geocode({ location: { lat: latVistaCiu, lng: lngVistaCiu } }, (results, status) => {
+                        if (status === "OK" && results[0]) {
+                            procesarLugarGoogle(results[0], true); // true = ciudadano
+                        } else {
+                            msgBox.innerText = "❌ No se pudo extraer dirección de las coordenadas.";
+                            msgBox.style.display = 'block';
+                        }
+                    });
+                } else {
+                    msgBox.innerText = "❌ No se detectó ninguna ubicación válida en el enlace.";
+                    msgBox.style.display = 'block';
                 }
             });
         };
@@ -566,9 +924,7 @@
         function flashVerde(elemento) {
             elemento.style.transition = 'background-color 0.3s ease';
             elemento.style.backgroundColor = '#ECFDF5';
-            setTimeout(() => {
-                elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-            }, 1800);
+            setTimeout(() => { elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1800);
         }
     </script>
     
