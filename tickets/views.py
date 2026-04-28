@@ -9,9 +9,8 @@ from django.http import JsonResponse
 from .models import *
 from .forms import TicketForm
 import json
-import google.generativeai as genai
-from django.http import JsonResponse
-
+import os
+from groq import Groq
 
 def salir(request):
     logout(request)
@@ -42,9 +41,6 @@ def vista_login(request):
 
     return render(request, 'registration/login.html', {'form': formulario})
 
-# Configura tu API Key de Gemini
-genai.configure(api_key="AIzaSyDvQCVhco4q0NUEi6GFyUs1VhCuCbRdOoI")
-
 def corregir_texto_ia(request):
     if request.method == 'POST':
         try:
@@ -54,30 +50,49 @@ def corregir_texto_ia(request):
             if not texto_original or len(texto_original) < 5:
                 return JsonResponse({'texto_corregido': texto_original})
 
-            # 👇 ESTA ES LA LÍNEA QUE DEBES ACTUALIZAR 👇
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            
-            prompt = f"Actúa como un corrector ortográfico para un sistema de gobierno. Corrige la ortografía y gramática del siguiente texto. No agregues información extra, no saludes, ni cambies el sentido, solo devuelve el texto corregido:\n\n{texto_original}"
+            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-            response = model.generate_content(prompt)
-            texto_corregido = response.text.strip()
+            response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+            {
+            "role": "system",
+            "content": (
+                "Eres un corrector ortográfico. "
+                "REGLAS ESTRICTAS: "
+                "1. Devuelve ÚNICAMENTE el texto corregido, sin explicaciones, sin saludos, sin comentarios, sin comillas, sin nada extra. "
+                "2. NO cambies el significado ni agregues palabras. "
+                "3. Solo corrige ortografía, acentos y gramática. "
+                "4. Si el texto ya está correcto, devuélvelo exactamente igual. "
+                "5. Tu respuesta debe ser SOLO el texto corregido y nada más."
+              )
+            },
+            {
+             "role": "user",
+             "content": texto_original
+            }
+        ], 
+            max_tokens=500,
+            temperature=0.0,
+         )
 
+            texto_corregido = response.choices[0].message.content.strip()
             return JsonResponse({'texto_corregido': texto_corregido})
+
         except Exception as e:
-            print(f">>> ERROR GEMINI: {type(e).__name__}: {e}")  
+            print(f">>> ERROR GROQ: {type(e).__name__}: {e}")
             return JsonResponse({'error': str(e)}, status=500)
+
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
 @login_required(login_url='/')
 def inicio(request):
-    # BARRERA DE SEGURIDAD: Solo superusuarios entran aquí
     if not request.user.is_superuser:
         if request.user.is_staff:
             return redirect('panel_agente')
         return redirect('crear_ticket')
 
-    # --- PROCESAMIENTO DE ACCIONES (POST) ---
     if request.method == 'POST':
         folio_ticket = request.POST.get('folio_ticket')
         action = request.POST.get('action') 
@@ -141,26 +156,32 @@ def inicio(request):
                     t.telefono = request.POST.get('telefono')
                     t.asunto = request.POST.get('asunto')
                     t.notas = request.POST.get('notas')
+                    t.gestor = request.POST.get('gestor')
+                    t.via_entrada = request.POST.get('via_entrada')
+                    t.latitud = request.POST.get('latitud')
+                    t.longitud = request.POST.get('longitud')
+                    
+                    if t.via_entrada == 'Ciudadano':
+                        t.numero_ocp = '' 
+                    else:
+                        t.numero_ocp = request.POST.get('numero_ocp')
+                    
+                    # Guardar dirección física
                     t.calle = request.POST.get('calle')
                     t.numero_exterior = request.POST.get('numero_exterior')
                     t.numero_interior = request.POST.get('numero_interior')
-                    t.gestor = request.POST.get('gestor')
-                    t.via_entrada = request.POST.get('via_entrada')
-                    
-                    # --- FILTRO DE SEGURIDAD PARA EL OCP ---
-                    if t.via_entrada == 'Ciudadano':
-                        t.numero_ocp = '' # Forzamos a que esté vacío si es ciudadano
-                    else:
-                        t.numero_ocp = request.POST.get('numero_ocp')
-                    # ---------------------------------------
-                    
                     col_id = request.POST.get('colonia_id')
-                    if col_id: 
-                        t.colonia_id = col_id
+                    if col_id: t.colonia_id = col_id
+                    
+                    # Guardar dirección ciudadano
+                    t.calle_ciudadano = request.POST.get('calle_ciudadano')
+                    t.numero_exterior_ciudadano = request.POST.get('numero_exterior_ciudadano')
+                    t.numero_interior_ciudadano = request.POST.get('numero_interior_ciudadano')
+                    col_c_id = request.POST.get('colonia_ciudadano_id')
+                    if col_c_id: t.colonia_ciudadano_id = col_c_id
                     
                     dir_id = request.POST.get('direccion_id')
-                    if dir_id: 
-                        t.direccion_id = dir_id
+                    if dir_id: t.direccion_id = dir_id
                     
                     t.save()
                 except TicketAyuda.DoesNotExist:
@@ -186,7 +207,6 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-    # --- LÓGICA DE FILTRADO Y LECTURA (GET) ---
     tickets = TicketAyuda.objects.all()
     q = request.GET.get('q', '')
     fecha_inicio = request.GET.get('fecha_inicio', '')
@@ -247,9 +267,17 @@ def inicio(request):
             'ext': p.numero_exterior if p.numero_exterior else '', 
             'int': p.numero_interior if p.numero_interior else '',
             'col_id': p.colonia.id if p.colonia else '',
-            'dir_id': p.direccion.id if p.direccion else '',
-            'colonia': p.colonia.nombre_colonia if p.colonia else 'N/A', 
             'direccion': p.direccion.nombre_direccion if p.direccion else 'N/A',
+            'colonia': p.colonia.nombre_colonia if p.colonia else 'N/A', 
+            
+            # Datos Ciudadano
+            'calle_c': p.calle_ciudadano if p.calle_ciudadano else '', 
+            'ext_c': p.numero_exterior_ciudadano if p.numero_exterior_ciudadano else '', 
+            'int_c': p.numero_interior_ciudadano if p.numero_interior_ciudadano else '',
+            'col_c_id': p.colonia_ciudadano.id if p.colonia_ciudadano else '',
+            'colonia_c': p.colonia_ciudadano.nombre_colonia if p.colonia_ciudadano else 'No proporcionada', 
+
+            'dir_id': p.direccion.id if p.direccion else '',
             'fecha': p.fecha.strftime('%d/%m/%Y'),
             'dias_abierto': (hoy - p.fecha).days,
             'notas': p.notas if p.notas else 'Sin detalles extra',
@@ -260,6 +288,7 @@ def inicio(request):
             'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
             'tareas': tareas_list,
             'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
+            'via': p.via_entrada if p.via_entrada else 'Ciudadano',
             'ocp': p.numero_ocp if p.numero_ocp else 'N/A',
         })
 
@@ -306,15 +335,12 @@ def crear_ticket(request):
                         ticket.agente_asignado = agentes_ordenados.first()
             ticket.save()
             
-            # --- REDIRECCIÓN INTELIGENTE ---
             if request.user.is_superuser:
-                return redirect('inicio') # Regresa al mapa general
+                return redirect('inicio') 
             elif request.user.is_staff:
-                return redirect('panel_agente') # Regresa a su panel de gestión
+                return redirect('panel_agente') 
             else:
-                # Los capturistas base se quedan aquí para seguir capturando
                 return redirect('crear_ticket') 
-            # -------------------------------
             
     else:
         formulario = TicketForm()
@@ -323,7 +349,6 @@ def crear_ticket(request):
 
 @login_required(login_url='/')
 def panel_agente(request):
-    # BARRERA DE SEGURIDAD: Los capturistas normales no pasan de aqui
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('crear_ticket')
 
@@ -464,37 +489,51 @@ def panel_agente(request):
     hoy = timezone.now().date()
     
     for p in mis_tickets: 
-        if p.latitud and p.longitud:
-            tareas_list = []
-            for t in p.tareas.all().order_by('fecha_creacion'):
-                tareas_list.append({
-                    'id': t.id,
-                    'descripcion': t.descripcion,
-                    'completada': t.completada,
-                    'ejecutor': t.ejecutor.username if t.ejecutor else '',
-                    'evidencia_url': t.evidencia_tarea.url if t.evidencia_tarea else ''
-                })
-
-            puntos_data.append({
-                'folio': p.folio, 'lat': float(p.latitud), 'lng': float(p.longitud),
-                'status': p.status, 'asunto': p.asunto, 'nombre': p.nombre,
-                'nombre': p.nombre_completo,
-                'email': p.email,
-                'fecha': p.fecha.strftime('%d/%m/%Y'),
-                'colonia': p.colonia.nombre_colonia if p.colonia else 'N/A',
-                'direccion': p.direccion.nombre_direccion if p.direccion else 'N/A',
-                'dias_abierto': (hoy - p.fecha).days,
-                'notas': p.notas if p.notas else 'Sin notas ciudadanas',
-                'porcentaje': p.porcentaje_avance,
-                'notas_agente': p.observaciones if p.observaciones else '', 
-                'evidencia_url': p.evidencia.url if p.evidencia else '',
-                'director': p.director_asignado.username if p.director_asignado else 'Sin asignar',
-                'subdirector': p.subdirector_asignado.username if p.subdirector_asignado else 'Sin asignar',
-                'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
-                'tareas': tareas_list,
-                'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
-                'ocp': p.numero_ocp if p.numero_ocp else 'N/A',
+        tareas_list = []
+        for t in p.tareas.all().order_by('fecha_creacion'):
+            tareas_list.append({
+                'id': t.id,
+                'descripcion': t.descripcion,
+                'completada': t.completada,
+                'ejecutor': t.ejecutor.username if t.ejecutor else '',
+                'evidencia_url': t.evidencia_tarea.url if t.evidencia_tarea else ''
             })
+
+        puntos_data.append({
+            'folio': p.folio,
+            'lat': float(p.latitud) if p.latitud else None,
+            'lng': float(p.longitud) if p.longitud else None,
+            'status': p.status,
+            'asunto': p.asunto,
+            'nombre': p.nombre_completo,
+            'email': p.email if p.email else '',
+            'telefono': p.telefono if p.telefono else '',
+            'fecha': p.fecha.strftime('%d/%m/%Y'),
+            # Dirección del problema
+            'colonia': p.colonia.nombre_colonia if p.colonia else 'No especificada',
+            'calle': p.calle if p.calle else '',
+            'numero_exterior': p.numero_exterior if p.numero_exterior else '',
+            'numero_interior': p.numero_interior if p.numero_interior else '',
+            # Dirección del ciudadano
+            'colonia_ciudadano': p.colonia_ciudadano.nombre_colonia if p.colonia_ciudadano else 'No proporcionada',
+            'calle_ciudadano': p.calle_ciudadano if p.calle_ciudadano else '',
+            'numero_exterior_ciudadano': p.numero_exterior_ciudadano if p.numero_exterior_ciudadano else '',
+            'numero_interior_ciudadano': p.numero_interior_ciudadano if p.numero_interior_ciudadano else '',
+            # Dependencia y trámite
+            'direccion': p.direccion.nombre_direccion if p.direccion else 'N/A',
+            'via_entrada': p.via_entrada if p.via_entrada else 'Ciudadano',
+            'dias_abierto': (hoy - p.fecha).days,
+            'notas': p.notas if p.notas else '',
+            'porcentaje': p.porcentaje_avance,
+            'notas_agente': p.observaciones if p.observaciones else '',
+            'evidencia_url': p.evidencia.url if p.evidencia else '',
+            'director': p.director_asignado.username if p.director_asignado else 'Sin asignar',
+            'subdirector': p.subdirector_asignado.username if p.subdirector_asignado else 'Sin asignar',
+            'coordinador': p.coordinador_asignado.username if p.coordinador_asignado else 'Sin asignar',
+            'tareas': tareas_list,
+            'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
+            'ocp': p.numero_ocp if p.numero_ocp else '',
+        })
 
     if request.GET.get('ajax') == '1':
         return JsonResponse({'puntos_json': puntos_data})
@@ -513,7 +552,7 @@ def panel_agente(request):
         'tickets_activos': mis_tickets_activos, 'tickets_resueltos': mis_tickets_resueltos,
         'puntos_json': json.dumps(puntos_data), 'colonias': colonias,
         'f_q': q, 'f_fecha_inicio': fecha_inicio, 'f_fecha_fin': fecha_fin, 
-        'f_colonia_id': int(colonia_id) if colonia_id.isdigit() else '',
+        'f_colonia_id': int(colonia_id) if str(colonia_id).isdigit() else '',
         'rol_usuario': rol_usuario,
         'empleados_inferiores': empleados_inferiores
     }

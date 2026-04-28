@@ -223,25 +223,76 @@
             
             <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; margin-top: 25px;">
                 
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div style="background: #F8FAFC; padding: 25px; border-radius: var(--radius-soft); border: 1px solid var(--border);">
-                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Solicitante</b> <br><span id="m-nombre" style="font-weight: 600; color: var(--text-main);"></span></p>
-                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gestor (Copaci/Delegado)</b> <br><span id="m-gestor" style="color: var(--text-main); font-weight: 500;"></span></p>
-                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Asunto</b> <br><span id="m-asunto" style="color: var(--text-main);"></span></p>
-                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Estado General</b> <br><span id="m-status" class="badge"></span></p>
-                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Gestor (Copaci/Delegado)</b> <br><span id="m-gestor" style="color: var(--text-main); font-weight: 500;"></span></p>
-                        <p style="margin: 0 0 15px 0;"><b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Número OCP</b> <br><span id="m-ocp" style="color: var(--gold-accent); font-weight: 800;"></span></p>
-                        <div style="border-top: 1px dashed var(--border); padding-top: 15px; margin-top: 5px;">
-                            <b style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Contexto Ciudadano</b>
-                            <span id="m-notas-ciudadano" style="display: block; margin-top: 8px; font-size: 0.9rem; line-height: 1.6; color: var(--text-main);"></span>
+                <div style="display: flex; flex-direction: column; gap: 16px; max-height: 800px; overflow-y: auto; padding-right: 8px;">
+                    
+                    <!-- BLOQUE: STATUS + FECHA -->
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <span id="m-status" class="badge"></span>
+                        <span id="m-via" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; padding:5px 12px; border-radius:50px; font-size:0.72rem; font-family:'Montserrat',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;"></span>
+                        <span style="margin-left:auto; font-size:0.8rem; color:var(--text-muted); font-weight:600;">📅 <span id="m-fecha"></span></span>
+                    </div>
+
+                    <!-- BLOQUE: SOLICITANTE -->
+                    <div style="background: #F8FAFC; padding: 18px 20px; border-radius: 12px; border: 1px solid #E2E8F0;">
+                        <div style="font-family:'Montserrat',sans-serif; font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; font-weight:700;">👤 Datos del Solicitante</div>
+                        <div style="font-weight:800; font-size:1.05rem; color:var(--primary); margin-bottom:8px;" id="m-nombre"></div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div>
+                                <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:2px;">Teléfono</div>
+                                <div style="font-size:0.9rem; color:var(--text-main); font-weight:500;" id="m-telefono">—</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:2px;">Correo</div>
+                                <div style="font-size:0.85rem; color:var(--text-main); font-weight:500; word-break:break-all;" id="m-email">—</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div id="contenedor-mapa" style="background: white; padding: 20px; border-radius: var(--radius-soft); border: 1px solid var(--border); display: none;">
-                        <h3 style="margin-bottom: 15px; font-size: 1rem; color: var(--primary);"> Georreferencia</h3>
-                        <div id="mapa-detalle" style="height: 250px; border-radius: 8px; border: 1px solid var(--border);"></div>
+                    <!-- BLOQUE: DOMICILIO DEL CIUDADANO -->
+                    <div style="background: #F8FAFC; padding: 18px 20px; border-radius: 12px; border: 1px solid #E2E8F0;">
+                        <div style="font-family:'Montserrat',sans-serif; font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; font-weight:700;">🏠 Domicilio del Ciudadano</div>
+                        <div style="font-size:0.9rem; color:var(--text-main); line-height:1.7;" id="m-dir-ciudadano">—</div>
                     </div>
-                    <p id="m-sin-mapa" style="color:var(--danger); text-align:center; padding: 15px; border: 1px dashed var(--danger); border-radius: 8px; background: var(--danger-light); font-weight: 600; display: none;">No hay coordenadas adjuntas.</p>
+
+                    <!-- BLOQUE: UBICACIÓN DEL PROBLEMA -->
+                    <div style="background: #FFF7ED; padding: 18px 20px; border-radius: 12px; border: 1px solid #FED7AA;">
+                        <div style="font-family:'Montserrat',sans-serif; font-size:0.65rem; color:#92400E; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; font-weight:700;">📍 Ubicación del Problema</div>
+                        <div style="font-size:0.9rem; color:var(--text-main); line-height:1.7;" id="m-dir-problema">—</div>
+                    </div>
+
+                    <!-- BLOQUE: TRÁMITE -->
+                    <div style="background: #F8FAFC; padding: 18px 20px; border-radius: 12px; border: 1px solid #E2E8F0;">
+                        <div style="font-family:'Montserrat',sans-serif; font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; font-weight:700;">📋 Datos del Trámite</div>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:2px;">Asunto</div>
+                            <div style="font-size:0.95rem; color:var(--primary); font-weight:700;" id="m-asunto"></div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:2px;">Dependencia</div>
+                                <div style="font-size:0.85rem; color:var(--text-main); font-weight:500;" id="m-dependencia">—</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:2px;">Núm. OCP</div>
+                                <div style="font-size:0.85rem; color:var(--gold-accent); font-weight:800;" id="m-ocp">—</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:2px;">Gestor / Copaci</div>
+                            <div style="font-size:0.88rem; color:var(--text-main); font-weight:500;" id="m-gestor">—</div>
+                        </div>
+                        <div id="m-notas-wrap" style="border-top:1px dashed #CBD5E1; padding-top:10px; margin-top:5px; display:none;">
+                            <div style="font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:4px;">Notas del Ciudadano</div>
+                            <div style="font-size:0.88rem; color:var(--text-main); line-height:1.6; font-style:italic;" id="m-notas-ciudadano"></div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE: MAPA -->
+                    <div id="contenedor-mapa" style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #E2E8F0; display: none;">
+                        <div style="font-family:'Montserrat',sans-serif; font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; font-weight:700;">Georreferencia (Del Problema o Solicitud)</div>
+                        <div id="mapa-detalle" style="height: 230px; border-radius: 8px; border: 1px solid #E2E8F0;"></div>
+                    </div>
+                    <p id="m-sin-mapa" style="color:var(--text-muted); text-align:center; padding:12px; border:1px dashed #CBD5E1; border-radius:8px; background:#F8FAFC; font-weight:600; font-size:0.85rem; display:none;">Sin georreferencia registrada.</p>
                 </div>
 
                 <div id="control-4d-container" style="max-height: 750px; overflow-y: auto; padding-right: 15px; overflow-x: hidden;">
@@ -319,9 +370,11 @@
 
         const puntosBD = {{ puntos_json|safe }};
         puntosBD.forEach(function(p) {
-            var marker = L.marker([p.lat, p.lng], {icon: iconos[p.status] || iconN}).addTo(mapGen);
-            marker.bindTooltip(`<b>#${p.folio}</b><br>${p.asunto}`);
-            marker.on('click', () => iniciarLogica4D(p.folio));
+            if (p.lat && p.lng) {
+                var marker = L.marker([p.lat, p.lng], {icon: iconos[p.status] || iconN}).addTo(mapGen);
+                marker.bindTooltip(`<b>#${p.folio}</b><br>${p.asunto}`);
+                marker.on('click', () => iniciarLogica4D(p.folio));
+            }
         });
 
         var mapDet = null, markerDet = null;
@@ -408,18 +461,62 @@
             let csrfInput = csrfForm.querySelector('[name=csrfmiddlewaretoken]');
             let csrfToken = csrfInput ? csrfInput.value : '';
 
-            // INFO IZQ
+            // ── INFO PANEL IZQUIERDO ──────────────────────────────────────
+            const set = (id, val) => { let el = document.getElementById(id); if(el) el.innerText = val || '—'; };
+            
             if(document.getElementById('m-folio')) document.getElementById('m-folio').innerText = "#" + ticket.folio;
-            if(document.getElementById('m-nombre')) document.getElementById('m-nombre').innerText = ticket.nombre;
-            if(document.getElementById('m-gestor')) document.getElementById('m-gestor').innerText = ticket.gestor;
-            if(document.getElementById('m-ocp')) document.getElementById('m-ocp').innerText = ticket.ocp; // 👈 AGREGAR ESTA LÍNEA
-            if(document.getElementById('m-asunto')) document.getElementById('m-asunto').innerText = ticket.asunto;
-            if(document.getElementById('m-notas-ciudadano')) document.getElementById('m-notas-ciudadano').innerText = ticket.notas || "Sin contexto.";
 
+            // Status badge
             let statusBadge = document.getElementById('m-status');
             if(statusBadge) {
                 statusBadge.innerText = ticket.status;
                 statusBadge.className = "badge " + (ticket.status === 'Nuevo' ? 'bg-nuevo' : (ticket.status === 'En Proceso' ? 'bg-proceso' : 'bg-resuelto'));
+            }
+
+            // Vía de entrada
+            let viaBadge = document.getElementById('m-via');
+            if(viaBadge) viaBadge.innerText = ticket.via_entrada || 'Ciudadano';
+
+            set('m-fecha', ticket.fecha);
+            set('m-nombre', ticket.nombre);
+            set('m-telefono', ticket.telefono);
+            set('m-email', ticket.email);
+
+            // Domicilio del ciudadano
+            let dirC = '';
+            if (ticket.calle_ciudadano) {
+                dirC += ticket.calle_ciudadano;
+                if (ticket.numero_exterior_ciudadano) dirC += ' No. ' + ticket.numero_exterior_ciudadano;
+                if (ticket.numero_interior_ciudadano) dirC += ' Int. ' + ticket.numero_interior_ciudadano;
+                dirC += '\n';
+            }
+            dirC += 'Col. ' + (ticket.colonia_ciudadano || 'No proporcionada');
+            set('m-dir-ciudadano', dirC);
+
+            // Ubicación del problema
+            let dirP = '';
+            if (ticket.calle) {
+                dirP += ticket.calle;
+                if (ticket.numero_exterior) dirP += ' No. ' + ticket.numero_exterior;
+                if (ticket.numero_interior) dirP += ' Int. ' + ticket.numero_interior;
+                dirP += '\n';
+            }
+            dirP += 'Col. ' + (ticket.colonia || 'No especificada');
+            set('m-dir-problema', dirP);
+
+            set('m-asunto', ticket.asunto);
+            set('m-dependencia', ticket.direccion);
+            set('m-ocp', ticket.ocp);
+            set('m-gestor', ticket.gestor);
+
+            // Notas del ciudadano (solo mostrar si hay)
+            let notasWrap = document.getElementById('m-notas-wrap');
+            let notasEl = document.getElementById('m-notas-ciudadano');
+            if (ticket.notas && ticket.notas.trim()) {
+                if(notasEl) notasEl.innerText = ticket.notas;
+                if(notasWrap) notasWrap.style.display = 'block';
+            } else {
+                if(notasWrap) notasWrap.style.display = 'none';
             }
 
             let container = document.getElementById('control-4d-container');
@@ -657,7 +754,7 @@
             // Re-renderizado exacto del Mapa CartoDB
             if(animarMapa) {
                 var divC = document.getElementById('contenedor-mapa'), pSin = document.getElementById('m-sin-mapa');
-                if (ticket.lat && ticket.lng && ticket.lat !== 'None') {
+                if (ticket.lat && ticket.lng) {
                     divC.style.display = 'block'; pSin.style.display = 'none';
                     let lat = parseFloat(ticket.lat), lng = parseFloat(ticket.lng);
                     setTimeout(() => {

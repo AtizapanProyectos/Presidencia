@@ -53,7 +53,7 @@
         .btn-cancelar { background: #FFFFFF; border: 1px solid #CBD5E1; color: var(--text-main); box-shadow: var(--shadow-card); }
         .btn-cancelar:hover { background: var(--danger-light); color: var(--danger); border-color: #FECACA; transform: translateY(-2px); }
         
-        .btn-guardar { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #FFFFFF; width: 100%; font-size: 1.05rem; padding: 18px; margin-top: 30px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); }
+        .btn-guardar { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #FFFFFF; width: 100%; font-size: 1.05rem; padding: 18px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2); margin-top: 40px; }
         .btn-guardar:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(15, 23, 42, 0.3); background: var(--primary); }
 
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 35px; }
@@ -79,10 +79,13 @@
         .django-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; }
         .django-form p { display: flex; flex-direction: column; gap: 6px; margin: 0; position: relative; }
         
+        /* Ajustes de anchos para el grid */
         .django-form p:has(textarea),
         .django-form p:has(select[name="colonia"]),
+        .django-form p:has(select[name="colonia_ciudadano"]),
         .django-form p:has(select[name="direccion"]),
         .django-form p:has(input[name="calle"]),
+        .django-form p:has(input[name="calle_ciudadano"]),
         .django-form p:has(input[name="gestor"]),
         .django-form p:has(input[name="numero_ocp"]),
         .django-form p:has(input[name="asunto"]) {
@@ -135,9 +138,7 @@
         }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .search-google-container { margin-bottom: 5px; width: 100%; }
-
-        /* Campos ocultos al ciudadano */
+        /* Campos de la afectación ocultos por defecto, llenados por Google o Switch */
         .django-form p:has(input[name="latitud"]),
         .django-form p:has(input[name="longitud"]),
         .django-form p:has(input[name="calle"]),
@@ -157,7 +158,6 @@
             box-shadow: 0 4px 15px rgba(15,23,42,0.1);
         }
         
-        /* Animación de Gemini */
         @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
     </style>
@@ -184,27 +184,51 @@
                     <p>{{ formulario.nombre.label_tag }} {{ formulario.nombre }}</p>
                     <p>{{ formulario.apellido_paterno.label_tag }} {{ formulario.apellido_paterno }}</p>
                     <p>{{ formulario.apellido_materno.label_tag }} {{ formulario.apellido_materno }}</p>
+                    <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
+                    <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
+
+                    <div style="grid-column: span 2; margin-top: 15px;">
+                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Dirección del Ciudadano (Opcional)</h4>
+                    </div>
+                    
+                    <div style="grid-column: span 2; margin-bottom: 10px;">
+                        <div id="buscador-ciudadano"></div>
+                    </div>
+                    
+                    <p>{{ formulario.colonia_ciudadano.label_tag }} {{ formulario.colonia_ciudadano }}</p>
+                    <p>{{ formulario.calle_ciudadano.label_tag }} {{ formulario.calle_ciudadano }}</p>
+                    <p>{{ formulario.numero_exterior_ciudadano.label_tag }} {{ formulario.numero_exterior_ciudadano }}</p>
+                    <p>{{ formulario.numero_interior_ciudadano.label_tag }} {{ formulario.numero_interior_ciudadano }}</p>
+
+                    <div style="grid-column: span 2; background: #FFFBEB; padding: 15px; border-radius: 12px; border: 1px dashed #F59E0B; margin-top: 10px; margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #b45309; cursor: pointer; font-size: 0.9rem;">
+                            <input type="checkbox" id="chk_misma_direccion" style="width: 18px; height: 18px; accent-color: #D97706;">
+                            La afectación a reportar es en esta misma dirección (Copiar al mapa táctico)
+                        </label>
+                    </div>
+
+                    <div style="grid-column: span 2; margin-top: 5px;">
+                        <h4 style="color: var(--gold-accent); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Detalles de la Petición</h4>
+                    </div>
+
                     <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
                     <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
 
-                    <div style="grid-column: span 2;">
-                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación: </label>
-                        <div id="contenedor-buscador-google"></div>
+                    <div style="grid-column: span 2; margin-top: 10px; margin-bottom: 10px;">
+                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación de la afectación (Obligatorio - Mueve el mapa): </label>
+                        <div id="buscador-afectacion"></div>
                     </div>
+
+                    <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
+                    <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
                     <p>{{ formulario.via_entrada.label_tag }} {{ formulario.via_entrada }}</p>
                     <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
-                    <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
-                    
-                    <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
-                    
-                    <p>{{ formulario.colonia.label_tag }} {{ formulario.colonia }}</p>
-                    <p>{{ formulario.calle.label_tag }} {{ formulario.calle }}</p>
-                    <p>{{ formulario.numero_exterior.label_tag }} {{ formulario.numero_exterior }}</p>
-                    <p>{{ formulario.numero_interior.label_tag }} {{ formulario.numero_interior }}</p>
-                    <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
-                    <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
 
                     <div style="display: none;">
+                        {{ formulario.colonia }}
+                        {{ formulario.calle }}
+                        {{ formulario.numero_exterior }}
+                        {{ formulario.numero_interior }}
                         {{ formulario.latitud }}
                         {{ formulario.longitud }}
                     </div>
@@ -227,8 +251,58 @@
     </div>
 
     <script>
+        // Objeto global temporal para guardar las coordenadas del ciudadano
+        let coordsCiudadanoTemp = null;
+
         // ==========================================
-        // 🤖 MOTOR IA: GEMINI AUTOCORRECCIÓN REAL
+        // SWITCH DE DIRECCIONES Y COPIA AL MAPA
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            const chkMismaDireccion = document.getElementById('chk_misma_direccion');
+            
+            if(chkMismaDireccion) {
+                chkMismaDireccion.addEventListener('change', function() {
+                    const colC = document.querySelector('select[name="colonia_ciudadano"]');
+                    const calC = document.querySelector('input[name="calle_ciudadano"]');
+                    const extC = document.querySelector('input[name="numero_exterior_ciudadano"]');
+                    const intC = document.querySelector('input[name="numero_interior_ciudadano"]');
+
+                    const colP = document.querySelector('select[name="colonia"]');
+                    const calP = document.querySelector('input[name="calle"]');
+                    const extP = document.querySelector('input[name="numero_exterior"]');
+                    const intP = document.querySelector('input[name="numero_interior"]');
+
+                    if (this.checked) {
+                        // Copiamos los valores a los campos de la petición
+                        if(calC) calP.value = calC.value;
+                        if(extC) extP.value = extC.value;
+                        if(intC) intP.value = intC.value;
+                        
+                        // Igualamos la colonia
+                        if(colC && colC.selectedIndex > 0) {
+                            colP.value = colC.value;
+                        }
+
+                        // Movemos el mapa si tenemos la coordenada guardada del buscador 1
+                        if (coordsCiudadanoTemp) {
+                            marcador.setLatLng([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng]);
+                            map.flyTo([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng], 18, { duration: 1.5 });
+                            actualizarInputs(coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng);
+                        } else if (colC && colC.selectedIndex > 0) {
+                            // Si lo llenaron a mano, volamos al centro de la colonia
+                            if (typeof volarAColonia === "function") volarAColonia();
+                        }
+                        
+                        this.parentElement.style.color = 'var(--success)';
+                    } else {
+                        this.parentElement.style.color = '#b45309';
+                    }
+                });
+            }
+        });
+
+        // ==========================================
+        // MOTOR IA: GROQ AUTOCORRECCIÓN REAL
         // ==========================================
         function aplicarIAOrtografica(campo) {
             if (!campo) return;
@@ -238,17 +312,15 @@
             campo.parentElement.appendChild(indicadorIA);
             
             let timeoutIA;
-            // Extraemos el token de Django para seguridad
             let csrfElem = document.querySelector('[name=csrfmiddlewaretoken]');
             const csrfToken = csrfElem ? csrfElem.value : '';
             
             campo.addEventListener('input', function() {
                 indicadorIA.style.opacity = '1';
-                indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; animation: parpadeo 1.5s infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg> Gemini analizando...';
+                indicadorIA.innerHTML = '<svg style="width:12px; height:12px; margin-right:4px; animation: parpadeo 2.2s infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg> Grok analizando...';
                 
                 clearTimeout(timeoutIA);
                 
-                // Esperamos 1.5 segundos después de que el usuario deja de escribir para no saturar la API
                 timeoutIA = setTimeout(async () => {
                     let textoOriginal = this.value.trim();
                     
@@ -270,10 +342,8 @@
                         let data = await response.json();
                         
                         if (data.texto_corregido && data.texto_corregido !== textoOriginal) {
-                            // Actualizamos el texto con la corrección real de la IA
                             this.value = data.texto_corregido;
                             
-                            // Efecto visual para que el usuario sepa que se corrigió
                             this.style.transition = 'background-color 0.4s';
                             this.style.backgroundColor = '#F5F3FF'; 
                             setTimeout(() => { this.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1500);
@@ -283,7 +353,7 @@
                         setTimeout(() => { indicadorIA.style.opacity = '0'; }, 2500);
                         
                     } catch(err) {
-                        console.error("Error contactando a Gemini:", err);
+                        console.error("Error contactando a Groq:", err);
                         indicadorIA.style.opacity = '0';
                     }
                 }, 1500); 
@@ -291,7 +361,6 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            // Lógica Vía de Entrada vs OCP
             const selectVia = document.querySelector('select[name="via_entrada"]');
             const inputOcp = document.querySelector('input[name="numero_ocp"]');
             
@@ -312,14 +381,12 @@
                 toggleOcp();
             }
 
-            // Animaciones de focus
             const inputs = document.querySelectorAll('.formulario-container input, .formulario-container select, .formulario-container textarea');
             inputs.forEach(el => {
                 el.addEventListener('focus', function() { this.parentElement.style.transform = 'scale(1.01)'; this.parentElement.style.transition = 'transform 0.2s'; });
                 el.addEventListener('blur', function() { this.parentElement.style.transform = 'scale(1)'; });
             });
 
-            // INICIALIZAR IA DE AUTOCORRECCIÓN EN ASUNTO Y NOTAS
             let campoAsunto = document.querySelector('input[name="asunto"]');
             let campoNotas = document.querySelector('textarea[name="notas"]');
             
@@ -328,7 +395,7 @@
         });
 
         // ==========================================
-        // 🗺️ INICIALIZACIÓN DEL MAPA LEAFLET
+        // INICIALIZACIÓN DEL MAPA LEAFLET
         // ==========================================
         var map = L.map('mapa').setView([19.5542, -99.2458], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -358,7 +425,7 @@
         actualizarInputs(19.5542, -99.2458);
 
         // ==========================================
-        // 🧠 CEREBRO SUPER PREDICTIVO 4D 
+        // CEREBRO SUPER PREDICTIVO 4D 
         // ==========================================
         const diccionarioAreas = {
             'SAPASA': ['agua', 'fuga', 'tubo', 'drenaje', 'inundación', 'inundacion', 'alcantarilla', 'pipa', 'coladera', 'desazolve', 'sin servicio', 'falta de agua', 'medidor', 'recibo de agua', 'charco', 'dren', 'saneamiento', 'registro abierto', 'tapa rota'],
@@ -412,7 +479,7 @@
         });
 
         // =================================================================
-        // 🚀 GEOJSON LOCAL Y ANIMACIONES DE VUELO
+        // GEOJSON LOCAL Y ANIMACIONES DE VUELO
         // =================================================================
         let geojsonColoniasData = null;
         let capaColoniaResaltada = null;
@@ -433,6 +500,7 @@
             })
             .catch(err => console.error("Error al cargar el GeoJSON:", err));
 
+        // Escuchar el cambio en la colonia general (la de la petición) para volar
         document.addEventListener('DOMContentLoaded', function() {
             const selectColonia = document.querySelector('select[name="colonia"]'); 
             if(selectColonia) {
@@ -468,98 +536,103 @@
         }
 
         // =================================================================
-        // 🚀 INTEGRACIÓN GOOGLE PLACES (NEW) - PLACES API (NEW) 2026
+        // INTEGRACIÓN GOOGLE PLACES (2 BUSCADORES INDEPENDIENTES)
         // =================================================================
-        window.initGoogleSearch = async function() {
+        function procesarLugarGoogle(place, esCiudadano) {
+            let calle = "", numero_ext = "", coloniaGoogle = "";
 
-            await google.maps.importLibrary("places");
+            if (place.addressComponents) {
+                place.addressComponents.forEach(comp => {
+                    const tipos = comp.types;
+                    if (tipos.includes("route"))              { calle        = comp.longText; }
+                    if (tipos.includes("street_number"))      { numero_ext   = comp.longText; }
+                    if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) {
+                        coloniaGoogle = comp.longText;
+                    }
+                });
+            }
 
-            const autocomplete = new google.maps.places.PlaceAutocompleteElement({
-                componentRestrictions: { country: 'mx' }
-            });
+            if (!calle && place.displayName) { calle = place.displayName; }
 
-            const contenedor = document.getElementById('contenedor-buscador-google');
-            contenedor.appendChild(autocomplete);
+            // Buscamos los inputs dependiendo si es ciudadano o afectación
+            let prefijo = esCiudadano ? "_ciudadano" : "";
+            const inputCalle   = document.querySelector(`input[name="calle${prefijo}"]`);
+            const inputNumExt  = document.querySelector(`input[name="numero_exterior${prefijo}"]`);
+            const selectColonia = document.querySelector(`select[name="colonia${prefijo}"]`);
 
-            autocomplete.addEventListener('gmp-select', async (e) => {
-                
-                const placePrediction = e.placePrediction;
-                if (!placePrediction) return;
+            if (inputCalle && calle) { inputCalle.value = calle; flashVerde(inputCalle); }
+            if (inputNumExt && numero_ext) { inputNumExt.value = numero_ext; flashVerde(inputNumExt); }
 
-                const place = placePrediction.toPlace();
-
-                try {
-                    await place.fetchFields({ 
-                        fields: ['displayName', 'location', 'addressComponents'] 
-                    });
-                } catch (err) {
-                    console.error('Error al obtener detalles del lugar:', err);
-                    return;
+            if (coloniaGoogle && selectColonia) {
+                const coloniaBuscada = coloniaGoogle.toLowerCase().trim();
+                let encontrado = false;
+                for (let j = 0; j < selectColonia.options.length; j++) {
+                    const opTexto = selectColonia.options[j].text.toLowerCase().trim();
+                    if (opTexto.includes(coloniaBuscada) || coloniaBuscada.includes(opTexto)) {
+                        selectColonia.selectedIndex = j;
+                        flashVerde(selectColonia);
+                        encontrado = true;
+                        if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
+                        break;
+                    }
                 }
-
-                const latGoogle = place.location.lat();
-                const lngGoogle = place.location.lng();
-
-                marcador.setLatLng([latGoogle, lngGoogle]);
-                map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
-                actualizarInputs(latGoogle, lngGoogle);
-
-                let calle       = "";
-                let numero_ext  = "";
-                let coloniaGoogle = "";
-
-                if (place.addressComponents) {
-                    place.addressComponents.forEach(comp => {
-                        const tipos = comp.types;
-                        if (tipos.includes("route"))              { calle        = comp.longText; }
-                        if (tipos.includes("street_number"))      { numero_ext   = comp.longText; }
-                        if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) {
-                            coloniaGoogle = comp.longText;
-                        }
-                    });
-                }
-
-                if (!calle && place.displayName) { calle = place.displayName; }
-
-                const inputCalle   = document.querySelector('input[name="calle"]');
-                const inputNumExt  = document.querySelector('input[name="numero_exterior"]');
-                const selectColonia = document.querySelector('select[name="colonia"]');
-
-                if (inputCalle && calle) {
-                    inputCalle.value = calle;
-                    flashVerde(inputCalle);
-                }
-                if (inputNumExt && numero_ext) {
-                    inputNumExt.value = numero_ext;
-                    flashVerde(inputNumExt);
-                }
-
-                if (coloniaGoogle && selectColonia) {
-                    const coloniaBuscada = coloniaGoogle.toLowerCase().trim();
-                    let encontrado = false;
+                if (!encontrado) {
+                    const palabrasBuscada = coloniaBuscada.split(/\s+/);
                     for (let j = 0; j < selectColonia.options.length; j++) {
                         const opTexto = selectColonia.options[j].text.toLowerCase().trim();
-                        if (opTexto.includes(coloniaBuscada) || coloniaBuscada.includes(opTexto)) {
+                        if (palabrasBuscada.some(p => p.length > 3 && opTexto.includes(p))) {
                             selectColonia.selectedIndex = j;
                             flashVerde(selectColonia);
-                            encontrado = true;
-                            if (typeof volarAColonia === "function") volarAColonia(true);
+                            if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
                             break;
                         }
                     }
-                    if (!encontrado) {
-                        const palabrasBuscada = coloniaBuscada.split(/\s+/);
-                        for (let j = 0; j < selectColonia.options.length; j++) {
-                            const opTexto = selectColonia.options[j].text.toLowerCase().trim();
-                            if (palabrasBuscada.some(p => p.length > 3 && opTexto.includes(p))) {
-                                selectColonia.selectedIndex = j;
-                                flashVerde(selectColonia);
-                                if (typeof volarAColonia === "function") volarAColonia(true);
-                                break;
-                            }
-                        }
-                    }
                 }
+            }
+        }
+
+        window.initGoogleSearch = async function() {
+            await google.maps.importLibrary("places");
+
+            // --- 1. BUSCADOR PARA EL CIUDADANO (NO MUEVE EL MAPA) ---
+            const autoCiudadano = new google.maps.places.PlaceAutocompleteElement({
+                componentRestrictions: { country: 'mx' }
+            });
+            document.getElementById('buscador-ciudadano').appendChild(autoCiudadano);
+
+            autoCiudadano.addEventListener('gmp-select', async (e) => {
+                if (!e.placePrediction) return;
+                const place = e.placePrediction.toPlace();
+                try {
+                    await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
+                    // Guardamos la coordenada por si marcan el checkbox luego
+                    coordsCiudadanoTemp = { lat: place.location.lat(), lng: place.location.lng() };
+                    procesarLugarGoogle(place, true);
+                } catch (err) { console.error('Error Google Ciudadano:', err); }
+            });
+
+            // --- 2. BUSCADOR PARA LA AFECTACIÓN (SÍ MUEVE EL MAPA) ---
+            const autoAfectacion = new google.maps.places.PlaceAutocompleteElement({
+                componentRestrictions: { country: 'mx' }
+            });
+            document.getElementById('buscador-afectacion').appendChild(autoAfectacion);
+
+            autoAfectacion.addEventListener('gmp-select', async (e) => {
+                if (!e.placePrediction) return;
+                const place = e.placePrediction.toPlace();
+                try {
+                    await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
+                    
+                    const latGoogle = place.location.lat();
+                    const lngGoogle = place.location.lng();
+
+                    // Este sí afecta el mapa táctico
+                    marcador.setLatLng([latGoogle, lngGoogle]);
+                    map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
+                    actualizarInputs(latGoogle, lngGoogle);
+
+                    procesarLugarGoogle(place, false);
+                } catch (err) { console.error('Error Google Afectación:', err); }
             });
         };
 

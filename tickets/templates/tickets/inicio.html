@@ -192,6 +192,17 @@
         .btn-edit-mode { background: #F59E0B; color: white; padding: 8px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; }
         .edit-field { display: none; margin-bottom: 10px; }
         .view-field { display: block; }
+
+
+        gmp-place-autocomplete {
+            width: 100%;
+            --gmp-color-surface: rgba(255, 255, 255, 0.9);
+            --gmp-color-on-surface: var(--text-title);
+            --gmp-color-primary: #8B5CF6;
+            --gmp-font-family: 'Inter', sans-serif;
+            --gmp-border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(15,23,42,0.1);
+        }
     </style>
 </head>
 <body>
@@ -363,6 +374,8 @@
         </div>
     </div>
 
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCfNfcBFEt8xYdFW4qO-IAT9yJja0oriqo&libraries=places&v=weekly"></script>
 <script>
         // ==========================================
         // ICONOS SVG Y FUNCIONES
@@ -547,15 +560,48 @@ let formHTML = `
                 </div>
             </div>
 
-            <p class="view-field" style="margin: 0 0 15px 0; font-size:0.85rem;">${ticket.calle || ''} ${ticket.ext || ''}, Col. <b>${ticket.colonia}</b></p>
-            <div class="edit-field" style="display:none; margin-bottom:15px;">
-                <label style="font-size:0.65rem; font-weight:700; color:var(--text-muted); font-family:'Montserrat',sans-serif;">UBICACIÓN FÍSICA:</label>
-                <input type="text" name="calle" class="form-control" value="${ticket.calle || ''}" placeholder="Calle" style="margin-top:5px; padding:8px;">
+            <div class="view-field" style="margin-top:15px; background: #FFFBEB; padding: 12px; border-radius: 8px; border: 1px dashed #F59E0B;">
+                <p style="font-size:0.75rem; color:#b45309; font-weight:800; margin:0 0 5px 0;">DIRECCIÓN DEL CIUDADANO:</p>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-main);">${ticket.calle_c ? ticket.calle_c + ' ' + ticket.ext_c : 'No proporcionada'}</p>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-main);">Col. <b>${ticket.colonia_c}</b></p>
+            </div>
+            
+            <div class="edit-field" style="display:none; margin-bottom:15px; background: #FFFBEB; padding: 12px; border-radius: 8px; border: 1px dashed #F59E0B;">
+                <label style="font-size:0.65rem; font-weight:700; color:#b45309; font-family:'Montserrat',sans-serif;">DIRECCIÓN DEL CIUDADANO (BUSCAR EN GOOGLE):</label>
+                
+                <div id="buscador-ciudadano-edit" style="margin-top: 5px; margin-bottom: 15px;"></div>
+
+                <input type="text" name="calle_ciudadano" id="edit_calle_ciudadano" class="form-control" value="${ticket.calle_c || ''}" placeholder="Calle" style="margin-top:5px; padding:8px;">
                 <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input type="text" name="numero_exterior" class="form-control" value="${ticket.ext || ''}" placeholder="Ext." style="padding:8px;">
+                    <input type="text" name="numero_exterior_ciudadano" id="edit_num_ext_ciudadano" class="form-control" value="${ticket.ext_c || ''}" placeholder="Ext." style="padding:8px;">
+                    <input type="text" name="numero_interior_ciudadano" class="form-control" value="${ticket.int_c || ''}" placeholder="Int." style="padding:8px;">
+                </div>
+                <select name="colonia_ciudadano_id" id="edit_colonia_ciudadano_id" class="form-control" style="margin-top:5px; padding:8px;">
+                    <option value="${ticket.col_c_id || ''}">MANTENER: ${ticket.colonia_c}</option>
+                    ${opcionesColonias}
+                </select>
+            </div>
+
+            <div class="view-field" style="margin-top:15px; background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px dashed var(--primary);">
+                <p style="font-size:0.75rem; color:var(--primary); font-weight:800; margin:0 0 5px 0;">UBICACIÓN DE LA AFECTACIÓN (MAPA):</p>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-main);">${ticket.calle || ''} ${ticket.ext || ''}</p>
+                <p style="margin:0; font-size:0.85rem; color:var(--text-main);">Col. <b>${ticket.colonia}</b></p>
+            </div>
+            
+            <div class="edit-field" style="display:none; margin-bottom:15px; background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px dashed var(--primary);">
+                <label style="font-size:0.65rem; font-weight:700; color:var(--primary); font-family:'Montserrat',sans-serif;">UBICACIÓN DE LA AFECTACIÓN (BUSCAR EN GOOGLE):</label>
+                
+                <div id="buscador-afectacion-edit" style="margin-top: 5px; margin-bottom: 15px;"></div>
+
+                <input type="hidden" name="latitud" id="edit_lat" value="${ticket.lat !== 'None' ? ticket.lat : ''}">
+                <input type="hidden" name="longitud" id="edit_lng" value="${ticket.lng !== 'None' ? ticket.lng : ''}">
+
+                <input type="text" name="calle" id="edit_calle" class="form-control" value="${ticket.calle || ''}" placeholder="Calle" style="margin-top:5px; padding:8px;">
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <input type="text" name="numero_exterior" id="edit_num_ext" class="form-control" value="${ticket.ext || ''}" placeholder="Ext." style="padding:8px;">
                     <input type="text" name="numero_interior" class="form-control" value="${ticket.int || ''}" placeholder="Int." style="padding:8px;">
                 </div>
-                <select name="colonia_id" class="form-control" style="margin-top:5px; padding:8px;">
+                <select name="colonia_id" id="edit_colonia_id" class="form-control" style="margin-top:5px; padding:8px;">
                     <option value="${ticket.col_id || ''}">MANTENER: ${ticket.colonia}</option>
                     ${opcionesColonias}
                 </select>
@@ -726,24 +772,162 @@ let formHTML = `
     }, 100);
     
     // Renderizamos el mapa
-    var divC = document.getElementById('contenedor-mapa');
+var divC = document.getElementById('contenedor-mapa');
     if (ticket.lat !== 'None' && ticket.lng !== 'None') {
         divC.style.display = 'block'; 
         let lat = parseFloat(ticket.lat), lng = parseFloat(ticket.lng);
+        
         setTimeout(() => {
             if (!mapDetalle) {
                 mapDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDetalle);
-                
                 if(typeof cargarGeoJSON === "function") cargarGeoJSON(mapDetalle);
-
-                markerDetalle = L.marker([lat, lng], {icon: iconos[ticket.status] || iconos['Nuevo']}).addTo(mapDetalle);
+                
+                // Hacemos el pin arrastrable para edición
+                markerDetalle = L.marker([lat, lng], {icon: iconos[ticket.status] || iconos['Nuevo'], draggable: true}).addTo(mapDetalle);
+                
+                // Si mueven el pin, actualizamos los inputs ocultos
+                markerDetalle.on('dragend', function() {
+                    let pos = markerDetalle.getLatLng();
+                    let latInput = document.getElementById('edit_lat');
+                    let lngInput = document.getElementById('edit_lng');
+                    if(latInput) latInput.value = pos.lat.toFixed(6);
+                    if(lngInput) lngInput.value = pos.lng.toFixed(6);
+                });
             } else { 
                 mapDetalle.setView([lat, lng], 16); 
                 markerDetalle.setLatLng([lat, lng]); 
                 markerDetalle.setIcon(iconos[ticket.status] || iconos['Nuevo']); 
             }
             mapDetalle.invalidateSize(); 
+
+            // INICIALIZAMOS EL BUSCADOR DE GOOGLE EN EL MODAL DE EDICIÓN
+// INICIALIZAMOS EL BUSCADOR DE GOOGLE EN EL MODAL DE EDICIÓN
+            (async function() {
+                await google.maps.importLibrary("places");
+
+                // --- 1. BUSCADOR: DIRECCIÓN CIUDADANO (NO MUEVE MAPA) ---
+                const autocompleteEditCiudadano = new google.maps.places.PlaceAutocompleteElement({
+                    componentRestrictions: { country: 'mx' }
+                });
+                
+                const contenedorCiudadano = document.getElementById('buscador-ciudadano-edit');
+                if (contenedorCiudadano) {
+                    contenedorCiudadano.innerHTML = ''; 
+                    contenedorCiudadano.appendChild(autocompleteEditCiudadano);
+                    
+                    autocompleteEditCiudadano.addEventListener('gmp-select', async (e) => {
+                        const placePrediction = e.placePrediction;
+                        if (!placePrediction) return;
+                        const place = placePrediction.toPlace();
+                        
+                        try {
+                            await place.fetchFields({ fields: ['displayName', 'addressComponents'] });
+
+                            let calle = "", numero_ext = "", coloniaGoogle = "";
+                            if (place.addressComponents) {
+                                place.addressComponents.forEach(comp => {
+                                    const tipos = comp.types;
+                                    if (tipos.includes("route")) calle = comp.longText;
+                                    if (tipos.includes("street_number")) numero_ext = comp.longText;
+                                    if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) coloniaGoogle = comp.longText;
+                                });
+                            }
+                            if (!calle && place.displayName) calle = place.displayName;
+
+                            let iCalleC = document.getElementById('edit_calle_ciudadano');
+                            let iNumExtC = document.getElementById('edit_num_ext_ciudadano');
+                            let iColoniaC = document.getElementById('edit_colonia_ciudadano_id');
+
+                            function flashNaranja(el) {
+                                el.style.transition = 'background-color 0.3s ease';
+                                el.style.backgroundColor = '#FEF3C7';
+                                setTimeout(() => { el.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1800);
+                            }
+
+                            if (iCalleC && calle) { iCalleC.value = calle; flashNaranja(iCalleC); }
+                            if (iNumExtC && numero_ext) { iNumExtC.value = numero_ext; flashNaranja(iNumExtC); }
+                            
+                            if (coloniaGoogle && iColoniaC) {
+                                let coloniaBuscada = coloniaGoogle.toLowerCase().trim();
+                                for (let j = 0; j < iColoniaC.options.length; j++) {
+                                    if (iColoniaC.options[j].text.toLowerCase().trim().includes(coloniaBuscada)) {
+                                        iColoniaC.selectedIndex = j;
+                                        flashNaranja(iColoniaC);
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (err) { console.error('Error Google Edit Ciudadano:', err); }
+                    });
+                }
+
+                // --- 2. BUSCADOR: AFECTACIÓN (SÍ MUEVE MAPA) ---
+                const autocompleteEdit = new google.maps.places.PlaceAutocompleteElement({
+                    componentRestrictions: { country: 'mx' }
+                });
+
+                const contenedorBusqueda = document.getElementById('buscador-afectacion-edit');
+                if (contenedorBusqueda) {
+                    contenedorBusqueda.innerHTML = ''; 
+                    contenedorBusqueda.appendChild(autocompleteEdit);
+                    
+                    autocompleteEdit.addEventListener('gmp-select', async (e) => {
+                        const placePrediction = e.placePrediction;
+                        if (!placePrediction) return;
+                        const place = placePrediction.toPlace();
+                        
+                        try {
+                            await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
+                            const latGoogle = place.location.lat();
+                            const lngGoogle = place.location.lng();
+
+                            // Actualizar coordenadas y mapa
+                            document.getElementById('edit_lat').value = latGoogle;
+                            document.getElementById('edit_lng').value = lngGoogle;
+                            markerDetalle.setLatLng([latGoogle, lngGoogle]);
+                            mapDetalle.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
+
+                            // Extraer dirección y rellenar formulario
+                            let calle = "", numero_ext = "", coloniaGoogle = "";
+                            if (place.addressComponents) {
+                                place.addressComponents.forEach(comp => {
+                                    const tipos = comp.types;
+                                    if (tipos.includes("route")) calle = comp.longText;
+                                    if (tipos.includes("street_number")) numero_ext = comp.longText;
+                                    if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) coloniaGoogle = comp.longText;
+                                });
+                            }
+                            if (!calle && place.displayName) calle = place.displayName;
+
+                            let iCalle = document.getElementById('edit_calle');
+                            let iNumExt = document.getElementById('edit_num_ext');
+                            let iColonia = document.getElementById('edit_colonia_id');
+
+                            function flashVerde(el) {
+                                el.style.transition = 'background-color 0.3s ease';
+                                el.style.backgroundColor = '#ECFDF5';
+                                setTimeout(() => { el.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1800);
+                            }
+
+                            if (iCalle && calle) { iCalle.value = calle; flashVerde(iCalle); }
+                            if (iNumExt && numero_ext) { iNumExt.value = numero_ext; flashVerde(iNumExt); }
+                            
+                            if (coloniaGoogle && iColonia) {
+                                let coloniaBuscada = coloniaGoogle.toLowerCase().trim();
+                                for (let j = 0; j < iColonia.options.length; j++) {
+                                    if (iColonia.options[j].text.toLowerCase().trim().includes(coloniaBuscada)) {
+                                        iColonia.selectedIndex = j;
+                                        flashVerde(iColonia);
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (err) { console.error('Error Google Edit:', err); }
+                    });
+                }
+            })();
+
         }, 300); 
     } else { divC.style.display = 'none'; }
 }

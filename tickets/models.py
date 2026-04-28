@@ -40,7 +40,12 @@ class TicketAyuda(models.Model):
     nombre = models.CharField(max_length=100, verbose_name="Nombre(s)")
     apellido_paterno = models.CharField(max_length=100, verbose_name="Apellido Paterno")
     apellido_materno = models.CharField(max_length=100, blank=True, null=True, verbose_name="Apellido Materno (Opcional)")
-    
+    # NUEVOS CAMPOS: DIRECCIÓN DEL CIUDADANO
+    colonia_ciudadano = models.ForeignKey(CatColonia, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets_como_ciudadano', verbose_name="Colonia del Ciudadano")
+    calle_ciudadano = models.CharField(max_length=150, blank=True, null=True, verbose_name="Calle del Ciudadano")
+    numero_exterior_ciudadano = models.CharField(max_length=50, blank=True, null=True, verbose_name="Núm. Exterior Ciudadano")
+    numero_interior_ciudadano = models.CharField(max_length=50, blank=True, null=True, verbose_name="Núm. Interior Ciudadano")
+
     asunto = models.CharField(max_length=150, blank=True, null=True)
     notas = models.TextField(blank=True, null=True)
     colonia = models.ForeignKey(CatColonia, on_delete=models.SET_NULL, null=True)
@@ -69,6 +74,7 @@ class TicketAyuda(models.Model):
     VIA_CHOICES = [
         ('Ciudadano', 'Ciudadano'),
         ('Oficio', 'Oficio'),
+        ('MIÉRCOLES CIUDADANO', 'MIÉRCOLES CIUDADANO'),
     ]
     via_entrada = models.CharField(
         max_length=20, 
@@ -99,8 +105,19 @@ class TicketAyuda(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.folio:
-            total_tickets = TicketAyuda.objects.count()
-            self.folio = str(total_tickets + 1000)
+            # Obtenemos todos los folios actuales para buscar el número real más alto
+            folios = TicketAyuda.objects.values_list('folio', flat=True)
+            max_folio = 999
+            
+            for f in folios:
+                if f and f.isdigit():
+                    num = int(f)
+                    if num > max_folio:
+                        max_folio = num
+            
+            # Asignamos el siguiente número disponible sin importar si se borraron anteriores
+            self.folio = str(max_folio + 1)
+            
         super().save(*args, **kwargs)
 
     def __str__(self):
