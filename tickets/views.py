@@ -1,5 +1,5 @@
 
-from mesa_ayuda.tickets.models import TicketAyuda
+
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import render, redirect
