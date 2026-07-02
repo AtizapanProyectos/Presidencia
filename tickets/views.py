@@ -1,4 +1,5 @@
 
+from mesa_ayuda.tickets.models import TicketAyuda
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import render, redirect
@@ -497,7 +498,18 @@ def panel_agente(request):
     fecha_fin = request.GET.get('fecha_fin', '')
     colonia_id = request.GET.get('colonia_id', '')
 
-    mis_tickets = TicketAyuda.objects.filter(
+    mis_tickets = TicketAyuda.objects.select_related(
+        'colonia',
+        'colonia_ciudadano',
+        'direccion',
+        'director_asignado',
+        'subdirector_asignado',
+        'coordinador_asignado'
+    ).prefetch_related(
+        'tareas',
+        'tareas__evidencias_multiples',
+        'tareas__ejecutor'
+    ).filter(
         Q(agente_asignado=usuario_actual) |
         Q(director_asignado=usuario_actual) |
         Q(subdirector_asignado=usuario_actual) |
