@@ -212,7 +212,18 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
-    tickets = TicketAyuda.objects.all()
+    tickets = TicketAyuda.objects.select_related(
+    'colonia',
+    'colonia_ciudadano',
+    'direccion',
+    'director_asignado',
+    'subdirector_asignado',
+    'coordinador_asignado',
+    ).prefetch_related(
+    'tareas',
+    'tareas__evidencias_multiples',
+    'tareas__ejecutor',
+    )
     q = request.GET.get('q', '')
     fecha_inicio = request.GET.get('fecha_inicio', '')
     fecha_fin = request.GET.get('fecha_fin', '')
@@ -241,7 +252,7 @@ def inicio(request):
     hoy = timezone.now().date()
     for p in tickets:
         tareas_list = []
-        for t in p.tareas.all().order_by('fecha_creacion'):
+        for t in p.tareas.all():
             tiempo = "Pendiente"
             if t.completada and t.fecha_completada:
                 dias = (t.fecha_completada.date() - t.fecha_creacion.date()).days

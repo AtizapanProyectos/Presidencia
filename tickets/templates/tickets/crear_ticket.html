@@ -491,154 +491,6 @@
             }
         }
 
-        // ============================================================
-        // 🔑 GROQ API KEY — reemplaza con tu clave real
-        // ============================================================
-        const GROQ_API_KEY = "{{ groq_api_key }}"; // <-- ¡Así es como se hace!
-
-        // ============================================================
-        // 🤖 LLAMADA DIRECTA A GROQ DESDE EL FRONTEND
-        // ============================================================
-        async function llamarGroqAPI(prompt) {
-            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + GROQ_API_KEY
-                },
-                body: JSON.stringify({
-                    model: "llama3-8b-8192",
-                    temperature: 0,
-                    max_tokens: 300,
-                    messages: [{ role: "user", content: prompt }]
-                })
-            });
-            if (!response.ok) throw new Error("Groq HTTP " + response.status);
-            const data = await response.json();
-            return data.choices?.[0]?.message?.content || "";
-        }
-
-        // ============================================================
-        // 🏘️ GROQ EXTRAE TODOS LOS DATOS: colonia, calle, número
-        //    Esta función se llama SIEMPRE (no sólo como fallback)
-        // ============================================================
-        async function procesarConGroq(infoGoogle, esCiudadano, latVal, lngVal) {
-            const prefijo = esCiudadano ? "_ciudadano" : "";
-            const inputCalle    = document.querySelector(`input[name="calle${prefijo}"]`);
-            const inputNumExt   = document.querySelector(`input[name="numero_exterior${prefijo}"]`);
-            const selectColonia = document.querySelector(`select[name="colonia${prefijo}"]`);
-            const msgGroqId     = esCiudadano ? 'msg_groq_ciudadano' : 'msg_groq_afectacion';
-            const msgGroqEl     = document.getElementById(msgGroqId);
-
-            if (!selectColonia) return;
-
-            // Mostrar indicador de carga
-            if (msgGroqEl) {
-                msgGroqEl.innerHTML = '🤖 Groq analizando dirección...';
-                msgGroqEl.style.color = '#8B5CF6';
-                msgGroqEl.style.display = 'block';
-            }
-
-            const opcionesColonia = Array.from(selectColonia.options)
-                .map(o => o.text.trim())
-                .filter(t => !t.includes('---') && t.length > 1);
-            const coloniasList = opcionesColonia.join('\n');
-
-            const prompt = `Eres un asistente de captura de datos para el municipio de Atizapán de Zaragoza, Estado de México.
-Tengo la siguiente información de una dirección obtenida de Google Maps:
-- Colonia detectada por Google: "${infoGoogle.coloniaGoogle || ''}"
-- Calle detectada: "${infoGoogle.calle || ''}"
-- Número exterior detectado: "${infoGoogle.numero_ext || ''}"
-- Latitud: ${latVal || ''}
-- Longitud: ${lngVal || ''}
-
-El catálogo de colonias registradas en el sistema es el siguiente (elige EXACTAMENTE una de estas):
-${coloniasList}
-
-Tu tarea:
-1. Analiza la colonia de Google, las coordenadas y la calle para determinar cuál colonia del catálogo corresponde mejor.
-2. Corrige o confirma el nombre de la calle (quita abreviaciones, usa nombre completo).
-3. Confirma o extrae el número exterior si existe.
-
-Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de código, con este formato exacto:
-{
-  "colonia": "NOMBRE_EXACTO_DEL_CATALOGO_O_VACIO",
-  "calle": "NOMBRE_CALLE_CORREGIDO",
-  "numero_exterior": "NUMERO_O_VACIO"
-}`;
-
-            try {
-                const rawText = await llamarGroqAPI(prompt);
-                const cleanText = rawText.replace(/```json|```/g, '').trim();
-                let parsed = null;
-                try { parsed = JSON.parse(cleanText); } catch(e) { console.error('JSON parse error Groq:', e, rawText); }
-
-                if (parsed) {
-                    // 1️⃣ Llenar calle
-                    if (parsed.calle && parsed.calle.trim() !== '' && inputCalle) {
-                        inputCalle.value = parsed.calle.trim();
-                        flashVerde(inputCalle);
-                    }
-                    // 2️⃣ Llenar número exterior
-                    if (parsed.numero_exterior && parsed.numero_exterior.trim() !== '' && inputNumExt) {
-                        inputNumExt.value = parsed.numero_exterior.trim();
-                        flashVerde(inputNumExt);
-                    }
-                    // 3️⃣ Seleccionar colonia del catálogo
-                    if (parsed.colonia && parsed.colonia.trim() !== '') {
-                        const coloniaGroq = parsed.colonia.toLowerCase().trim();
-                        let coloniaEncontrada = false;
-                        // Búsqueda exacta primero
-                        for (let j = 0; j < selectColonia.options.length; j++) {
-                            const opTexto = selectColonia.options[j].text.toLowerCase().trim();
-                            if (opTexto === coloniaGroq) {
-                                selectColonia.selectedIndex = j; flashVerde(selectColonia);
-                                coloniaEncontrada = true;
-                                if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
-                                break;
-                            }
-                        }
-                        // Búsqueda parcial si no hubo exacta
-                        if (!coloniaEncontrada) {
-                            for (let j = 0; j < selectColonia.options.length; j++) {
-                                const opTexto = selectColonia.options[j].text.toLowerCase().trim();
-                                if (opTexto.includes(coloniaGroq) || coloniaGroq.includes(opTexto)) {
-                                    selectColonia.selectedIndex = j; flashVerde(selectColonia);
-                                    coloniaEncontrada = true;
-                                    if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (coloniaEncontrada && msgGroqEl) {
-                            msgGroqEl.innerHTML = '✅ Groq identificó: <strong>' + selectColonia.options[selectColonia.selectedIndex].text + '</strong>';
-                            msgGroqEl.style.color = '#10B981';
-                            setTimeout(() => { msgGroqEl.style.display = 'none'; }, 5000);
-                        } else if (!coloniaEncontrada && msgGroqEl) {
-                            msgGroqEl.innerHTML = '⚠️ Groq sugirió "' + parsed.colonia + '" — no está en catálogo. Selecciona manualmente.';
-                            msgGroqEl.style.color = '#D97706';
-                        }
-                    } else if (msgGroqEl) {
-                        msgGroqEl.innerHTML = '⚠️ Groq no identificó colonia. Selecciona manualmente.';
-                        msgGroqEl.style.color = '#D97706';
-                    }
-                } else if (msgGroqEl) {
-                    msgGroqEl.innerHTML = '❌ No se pudo interpretar la respuesta de Groq. Revisa manualmente.';
-                    msgGroqEl.style.color = 'var(--danger)';
-                }
-            } catch(err) {
-                console.error('Error Groq API:', err);
-                if (msgGroqEl) {
-                    msgGroqEl.innerHTML = '❌ Error al conectar con Groq. Verifica la API key o revisa manualmente.';
-                    msgGroqEl.style.color = 'var(--danger)';
-                }
-            }
-        }
-
-        // ============================================================
-        // 🗺️ PROCESAR LUGAR DE GOOGLE → SIEMPRE pasa por Groq
-        // ============================================================
         function procesarLugarGoogle(place, esCiudadano) {
             let calle = "", numero_ext = "", coloniaGoogle = "";
             const componentes = place.addressComponents || place.address_components;
@@ -646,26 +498,162 @@ Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de códig
             if (componentes) {
                 componentes.forEach(comp => {
                     const tipos = comp.types;
-                    const valor = comp.longText || comp.long_name;
+                    const valor = comp.longText || comp.long_name; 
                     if (tipos.includes("route"))              { calle        = valor; }
                     if (tipos.includes("street_number"))      { numero_ext   = valor; }
                     if (tipos.includes("sublocality_level_1") || tipos.includes("neighborhood")) { coloniaGoogle = valor; }
                 });
             }
+
             if (!calle && place.name) { calle = place.name; }
             if (!calle && place.displayName) { calle = place.displayName; }
 
-            // Obtener coordenadas actuales del marcador
-            const prefijo = esCiudadano ? "_ciudadano" : "";
-            let latVal = document.querySelector('input[name="latitud"]')?.value || '';
-            let lngVal = document.querySelector('input[name="longitud"]')?.value || '';
+            let prefijo = esCiudadano ? "_ciudadano" : "";
+            const inputCalle   = document.querySelector(`input[name="calle${prefijo}"]`);
+            const inputNumExt  = document.querySelector(`input[name="numero_exterior${prefijo}"]`);
+            const selectColonia = document.querySelector(`select[name="colonia${prefijo}"]`);
 
-            // 🤖 SIEMPRE usamos Groq para extraer/confirmar colonia, calle y número
-            procesarConGroq({ coloniaGoogle, calle, numero_ext }, esCiudadano, latVal, lngVal);
+            if (inputCalle && calle) { inputCalle.value = calle; flashVerde(inputCalle); }
+            if (inputNumExt && numero_ext) { inputNumExt.value = numero_ext; flashVerde(inputNumExt); }
+
+            if (coloniaGoogle && selectColonia) {
+                const coloniaBuscada = coloniaGoogle.toLowerCase().trim();
+                let encontrado = false;
+                for (let j = 0; j < selectColonia.options.length; j++) {
+                    const opTexto = selectColonia.options[j].text.toLowerCase().trim();
+                    if (opTexto.includes(coloniaBuscada) || coloniaBuscada.includes(opTexto)) {
+                        selectColonia.selectedIndex = j; flashVerde(selectColonia); encontrado = true;
+                        if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
+                        break;
+                    }
+                }
+                if (!encontrado) {
+                    const palabrasBuscada = coloniaBuscada.split(/\s+/);
+                    for (let j = 0; j < selectColonia.options.length; j++) {
+                        const opTexto = selectColonia.options[j].text.toLowerCase().trim();
+                        if (palabrasBuscada.some(p => p.length > 3 && opTexto.includes(p))) {
+                            selectColonia.selectedIndex = j; flashVerde(selectColonia); encontrado = true;
+                            if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true); break;
+                        }
+                    }
+                }
+                // 🤖 Si después de todos los intentos no se encontró la colonia, llamamos a Groq
+                if (!encontrado) {
+                    const lat = document.querySelector('input[name="latitud' + prefijo + '"]')?.value || 
+                                document.querySelector('input[name="latitud"]')?.value || '';
+                    const lng = document.querySelector('input[name="longitud' + prefijo + '"]')?.value || 
+                                document.querySelector('input[name="longitud"]')?.value || '';
+                    const msgGroqId = esCiudadano ? 'msg_groq_ciudadano' : 'msg_groq_afectacion';
+                    const msgGroqEl = document.getElementById(msgGroqId);
+                    if (msgGroqEl) {
+                        msgGroqEl.innerHTML = '🤖 Colonia no encontrada en el catálogo, consultando a Groq...';
+                        msgGroqEl.style.display = 'block';
+                    }
+
+                    // Obtener lista de colonias disponibles
+                    const opcionesColonia = Array.from(selectColonia.options)
+                        .map(o => o.text.trim())
+                        .filter(t => !t.includes('---') && t.length > 1);
+
+                    // Lista de opciones disponibles del select para que Groq elija la más cercana
+                    const coloniasList = opcionesColonia.join('\n');
+
+                    const promptGroq = `Eres un asistente de captura de datos para el municipio de Atizapán de Zaragoza, México.
+Tengo la siguiente información de un lugar obtenida de Google Maps:
+- Colonia detectada por Google: "${coloniaGoogle}"
+- Calle: "${calle}"
+- Número exterior: "${numero_ext}"
+- Latitud: ${lat}
+- Longitud: ${lng}
+
+El catálogo de colonias del sistema tiene estas opciones:
+${coloniasList}
+
+Necesito que respondas ÚNICAMENTE con un JSON válido sin texto adicional ni bloques de código, con este formato exacto:
+{
+  "colonia": "NOMBRE_EXACTO_DEL_CATALOGO_O_VACIO",
+  "calle": "CALLE_CORREGIDA_O_DETECTADA",
+  "numero_exterior": "NUMERO_EXTERIOR_O_VACIO"
+}
+
+Si no encuentras una colonia similar en el catálogo, pon "" en colonia.
+Elige la colonia del catálogo que sea más parecida o cercana geográficamente a la detectada.`;
+
+                    llamarGroqDireccion(promptGroq, esCiudadano, lat, lng, calle, numero_ext, selectColonia, inputCalle, inputNumExt, msgGroqId);
+                }
+            }
         }
 
-        // compat: función vacía para no romper referencias antiguas
-        async function llamarGroqDireccion() {}
+        async function llamarGroqDireccion(prompt, esCiudadano, lat, lng, calleOrig, numExtOrig, selectColonia, inputCalle, inputNumExt, msgGroqId) {
+            const csrfElem = document.querySelector('[name=csrfmiddlewaretoken]');
+            const csrfToken = csrfElem ? csrfElem.value : '';
+            const msgGroqEl = document.getElementById(msgGroqId);
+            try {
+                const response = await fetch('/api/corregir-texto/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ texto: prompt, modo: 'direccion' })
+                });
+                const data = await response.json();
+                // El backend puede devolver texto_corregido con el JSON de Groq
+                const rawText = data.texto_corregido || data.respuesta || '';
+                let parsed = null;
+                try {
+                    // Limpiar posibles bloques de código
+                    const cleanText = rawText.replace(/```json|```/g, '').trim();
+                    parsed = JSON.parse(cleanText);
+                } catch(e) {
+                    console.error('Error parseando respuesta Groq:', e, rawText);
+                }
+
+                if (parsed) {
+                    // Intentar poner la colonia que Groq sugirió
+                    if (parsed.colonia && parsed.colonia.trim() !== '') {
+                        const coloniaGroq = parsed.colonia.toLowerCase().trim();
+                        let coloniaEncontrada = false;
+                        for (let j = 0; j < selectColonia.options.length; j++) {
+                            const opTexto = selectColonia.options[j].text.toLowerCase().trim();
+                            if (opTexto === coloniaGroq || opTexto.includes(coloniaGroq) || coloniaGroq.includes(opTexto)) {
+                                selectColonia.selectedIndex = j; flashVerde(selectColonia); coloniaEncontrada = true;
+                                if (!esCiudadano && typeof volarAColonia === "function") volarAColonia(true);
+                                break;
+                            }
+                        }
+                        if (!coloniaEncontrada && msgGroqEl) {
+                            msgGroqEl.innerHTML = '⚠️ Groq sugirió "' + parsed.colonia + '" pero no coincide con el catálogo. Revisa manualmente.';
+                        } else if (coloniaEncontrada && msgGroqEl) {
+                            msgGroqEl.innerHTML = '✅ Groq identificó la colonia: <strong>' + parsed.colonia + '</strong>';
+                            msgGroqEl.style.color = '#10B981';
+                            setTimeout(() => { msgGroqEl.style.display = 'none'; }, 4000);
+                        }
+                    } else if (msgGroqEl) {
+                        msgGroqEl.innerHTML = '⚠️ Groq no pudo identificar la colonia. Selecciona manualmente.';
+                    }
+
+                    // Llenar calle y número si Groq los mejoró
+                    if (parsed.calle && inputCalle && (!inputCalle.value || inputCalle.value.trim() === '')) {
+                        inputCalle.value = parsed.calle; flashVerde(inputCalle);
+                    }
+                    if (parsed.numero_exterior && inputNumExt && (!inputNumExt.value || inputNumExt.value.trim() === '')) {
+                        inputNumExt.value = parsed.numero_exterior; flashVerde(inputNumExt);
+                    }
+
+                    // Mover el pin si Groq devuelve coordenadas (opcional: si el backend las calcula)
+                    if (parsed.lat && parsed.lng && !isNaN(parsed.lat) && !isNaN(parsed.lng)) {
+                        const nuevaLat = parseFloat(parsed.lat);
+                        const nuevaLng = parseFloat(parsed.lng);
+                        marcador.setLatLng([nuevaLat, nuevaLng]);
+                        map.flyTo([nuevaLat, nuevaLng], 18, { duration: 1.5 });
+                        actualizarInputs(nuevaLat, nuevaLng);
+                    }
+                } else if (msgGroqEl) {
+                    msgGroqEl.innerHTML = '❌ No se pudo interpretar la respuesta de Groq.';
+                }
+            } catch(err) {
+                console.error('Error llamando Groq para dirección:', err);
+                if (msgGroqEl) msgGroqEl.innerHTML = '❌ Error al consultar Groq. Selecciona la colonia manualmente.';
+            }
+        }
 
         window.initGoogleSearch = async function() {
             await google.maps.importLibrary("places");
@@ -725,16 +713,14 @@ Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de códig
                 }
 
                 if (latAfec && lngAfec) {
-                    // Coordenadas exactas del PIN → mover mapa y geocodificar como AFECTACIÓN
+                    // Coordenadas exactas → mover mapa y geocodificar como AFECTACIÓN
                     marcador.setLatLng([latAfec, lngAfec]);
                     map.flyTo([latAfec, lngAfec], 18, { duration: 1.5 });
                     actualizarInputs(latAfec, lngAfec);
-                    // ✅ Limpiar campo del link después de usarlo
-                    document.getElementById('link_maps').value = '';
                     const geocoderAfec = new google.maps.Geocoder();
                     geocoderAfec.geocode({ location: { lat: latAfec, lng: lngAfec } }, (results, status) => {
                         if (status === "OK" && results[0]) {
-                            procesarLugarGoogle(results[0], false); // false = afectación, pin ya está puesto
+                            procesarLugarGoogle(results[0], false); // false = afectación
                         } else {
                             msgBox.innerText = "Ubicación exacta encontrada, pero no se extrajo el nombre de la calle.";
                             msgBox.style.display = 'block';
@@ -767,8 +753,7 @@ Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de códig
                             marcador.setLatLng([pLat, pLng]);
                             map.flyTo([pLat, pLng], 18, { duration: 1.5 });
                             actualizarInputs(pLat, pLng);
-                            document.getElementById('link_maps').value = '';
-                            procesarLugarGoogle(pl, false); // false = afectación, pin puesto
+                            procesarLugarGoogle(pl, false); // false = afectación
                         } else if (latVistaAfec && lngVistaAfec) {
                             marcador.setLatLng([latVistaAfec, lngVistaAfec]);
                             map.flyTo([latVistaAfec, lngVistaAfec], 18, { duration: 1.5 });
@@ -832,18 +817,16 @@ Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de códig
                 }
 
                 if (latCiu && lngCiu) {
-                    // Solo geocodificamos, NUNCA tocamos marcador ni mapa (es ciudadano)
+                    // Solo geocodificamos, NUNCA tocamos marcador ni mapa
                     coordsCiudadanoTemp = { lat: latCiu, lng: lngCiu };
                     const geocoderCiu = new google.maps.Geocoder();
                     geocoderCiu.geocode({ location: { lat: latCiu, lng: lngCiu } }, (results, status) => {
                         if (status === "OK" && results[0]) {
-                            procesarLugarGoogle(results[0], true); // true = ciudadano, SIN mover pin
-                            // ✅ Limpiar link después de procesar
-                            document.getElementById('link_maps_ciudadano').value = '';
-                            msgBox.innerText = "✅ Dirección del ciudadano enviada a Groq...";
+                            procesarLugarGoogle(results[0], true); // true = ciudadano
+                            msgBox.innerText = "✅ Dirección del ciudadano extraída correctamente.";
                             msgBox.style.color = 'var(--success)';
                             msgBox.style.display = 'block';
-                            setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 5000);
+                            setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 3500);
                         } else {
                             msgBox.innerText = "❌ No se pudo obtener la dirección de esas coordenadas.";
                             msgBox.style.display = 'block';
@@ -874,11 +857,10 @@ Responde ÚNICAMENTE con un JSON válido, sin texto extra, sin bloques de códig
                             const pl = places[0];
                             coordsCiudadanoTemp = { lat: pl.location.lat(), lng: pl.location.lng() };
                             procesarLugarGoogle(pl, true); // true = ciudadano, NO toca mapa
-                            document.getElementById('link_maps_ciudadano').value = '';
-                            msgBox.innerText = "✅ Dirección del ciudadano enviada a Groq...";
+                            msgBox.innerText = "✅ Dirección del ciudadano extraída.";
                             msgBox.style.color = 'var(--success)';
                             msgBox.style.display = 'block';
-                            setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 5000);
+                            setTimeout(() => { msgBox.style.display = 'none'; msgBox.style.color = 'var(--danger)'; }, 3500);
                         } else if (latVistaCiu && lngVistaCiu) {
                             coordsCiudadanoTemp = { lat: latVistaCiu, lng: lngVistaCiu };
                             const geocoderCiu2 = new google.maps.Geocoder();
