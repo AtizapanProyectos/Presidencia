@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Módulo de Agentes y Jerarquías - Gobierno Digital</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-app: #F8F9FA; --surface: #FFFFFF;
+            --primary: #0A1931; --primary-light: #152B4D; --gold-accent: #C1A661;
+            --success: #15803d; --success-light: #eafff0; --success-border: #bcebc7;
+            --warning: #b45309; --warning-light: #fef3c7;
+            --danger:  #b91c1c; --danger-light:  #fee2e2;
+            --text-title: #071224; --text-main: #334155; --text-muted: #64748B;
+            --border-delicate: 1px solid rgba(10, 25, 49, 0.08);
+            --radius-soft: 16px; --radius-pill: 50px;
+            --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.03);
+            --gray-pending: #E2E8F0; --gray-text: #94A3B8;
+            --linea-arbol: #CBD5E1;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); padding: 30px 40px; margin:0; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; color: var(--text-title); margin: 0; }
+        h1 { font-weight: 800; font-size: 1.8rem; letter-spacing: -0.5px; }
+        h2 { font-weight: 700; font-size: 1.25rem; margin-bottom: 4px; color: var(--primary); }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 25px; margin-bottom: 30px; border-bottom: 2px solid rgba(10, 25, 49, 0.05); }
+        .panel { background: var(--surface); padding: 30px; border-radius: var(--radius-soft); box-shadow: var(--shadow-card); border: var(--border-delicate); margin-bottom: 30px; }
+        .panel-sub { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 24px; }
+
+        .btn { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.8rem; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-primary { background: var(--primary); color: var(--surface); }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 15px rgba(10,25,49,0.2); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #166534; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(21,128,61,0.2); }
+        .btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); padding: 10px 20px; }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        .btn-danger-outline { background: transparent; border: 1.5px solid var(--danger); color: var(--danger); padding: 10px 24px; }
+        .btn-sm { padding: 8px 16px; font-size: 0.7rem; }
+
+        .form-control { width: 100%; padding: 12px 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: var(--text-title); background: #F8FAFC; transition: all 0.3s ease; }
+        .form-control:focus { outline: none; border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(10, 25, 49, 0.08); }
+        label { font-family: 'Montserrat', sans-serif; font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px; }
+
+        .badge { padding: 5px 13px; border-radius: var(--radius-pill); font-size: 0.68rem; font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; display: inline-block; }
+        .badge-director { background: var(--primary); color: #fff; }
+        .badge-subdirector { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+        .badge-coordinador { background: var(--warning-light); color: var(--warning); border: 1px solid rgba(180,83,9,0.2); }
+
+        .estado-punto { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .estado-disponible { background: var(--success); }
+        .estado-ocupado { background: var(--warning); }
+        .estado-campo { background: #1D4ED8; }
+        .estado-ausente { background: var(--gray-text); }
+
+        /* =================================================================
+           BANNER DE TURNADO AUTOMÁTICO GLOBAL
+           ================================================================= */
+        .banner-turnado { display:flex; align-items:center; justify-content:space-between; background: var(--primary); border-radius: var(--radius-soft); padding: 22px 28px; margin-bottom: 30px; box-shadow: var(--shadow-card); }
+        .banner-turnado-texto { color: #fff; }
+        .banner-turnado-titulo { font-family:'Montserrat',sans-serif; font-weight:800; font-size:1rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+        .banner-turnado-sub { font-size:0.8rem; color:#CBD5E1; }
+        .banner-turnado-estado { display:flex; align-items:center; gap:14px; }
+        .banner-turnado-chip { font-family:'Montserrat',sans-serif; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; padding:6px 16px; border-radius:50px; }
+        .banner-turnado-chip.on { background: var(--success-light); color: var(--success); }
+        .banner-turnado-chip.off { background: rgba(255,255,255,0.1); color: #CBD5E1; }
+
+        .master-switch { width:52px; height:28px; border-radius:50px; background: rgba(255,255,255,0.15); position:relative; cursor:pointer; border:none; transition: background 0.25s ease; }
+        .master-switch::after { content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:left 0.25s ease; }
+        .master-switch.activo { background: var(--success); }
+        .master-switch.activo::after { left:27px; }
+
+        /* =================================================================
+           ARBOL DE JERARQUÍA (Director > Subdirectores > Coordinadores)
+           ================================================================= */
+        .arbol-wrap { overflow-x: auto; padding: 10px 0 30px 0; }
+        ul.arbol, ul.arbol ul { list-style: none; margin: 0; padding: 0; position: relative; display: flex; justify-content: center; }
+        ul.arbol ul { padding-top: 40px; }
+        ul.arbol li { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0 18px; }
+        ul.arbol li ul { display: flex; }
+
+        /* Líneas verticales y horizontales estilo organigrama */
+        ul.arbol ul li { padding-top: 40px; }
+        ul.arbol ul li::before {
+            content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 40px;
+            background: var(--linea-arbol);
+        }
+        ul.arbol ul li::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--linea-arbol);
+        }
+        ul.arbol ul li:first-child::after { left: 50%; width: 50%; }
+        ul.arbol ul li:last-child::after { width: 50%; }
+        ul.arbol ul li:only-child::after { display: none; }
+        ul.arbol ul li:only-child::before { display: none; }
+
+        .agente-card { background: var(--surface); border: 1px solid #E2E8F0; border-radius: 14px; padding: 18px 20px; width: 230px; box-shadow: var(--shadow-card); text-align: left; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .agente-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(10,25,49,0.08); }
+        .agente-card.nivel-director { width: 250px; border-color: var(--primary); border-width: 2px; }
+        .agente-card.nivel-subdirector { border-top: 4px solid #1D4ED8; }
+        .agente-card.nivel-coordinador { width: 210px; border-top: 4px solid var(--gold-accent); }
+
+        .agente-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .agente-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-family:'Montserrat',sans-serif; font-weight: 800; font-size: 0.85rem; flex-shrink: 0; }
+        .nivel-subdirector .agente-avatar { background: #1D4ED8; }
+        .nivel-coordinador .agente-avatar { background: var(--gold-accent); }
+        .agente-nombre { font-family:'Montserrat',sans-serif; font-weight: 700; font-size: 0.85rem; color: var(--text-title); line-height: 1.25; }
+        .agente-rol { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+        .agente-estado { font-size: 0.72rem; color: var(--text-main); font-weight: 600; margin-bottom: 10px; display:flex; align-items:center; }
+
+        .agente-carga-label { display:flex; justify-content:space-between; font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing:0.3px; margin-bottom: 5px; }
+        .agente-carga-track { background: #E2E8F0; border-radius: 10px; height: 6px; overflow: hidden; margin-bottom: 14px; }
+        .agente-carga-fill { height: 100%; border-radius: 10px; background: var(--primary); transition: width 0.6s ease; }
+
+        .agente-footer { display: flex; gap: 8px; align-items: center; }
+        .toggle-mini { display:flex; align-items:center; gap:6px; font-size:0.65rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.3px; }
+        .switch-mini { width:32px; height:18px; border-radius:50px; background:var(--gray-pending); position:relative; cursor:pointer; border:none; flex-shrink:0; transition: background 0.2s ease; }
+        .switch-mini::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.25); transition:left 0.2s ease; }
+        .switch-mini.activo { background: var(--success); }
+        .switch-mini.activo::after { left:16px; }
+
+        .btn-reasignar-card { margin-left:auto; background:#F1F5F9; color: var(--primary); border:none; padding:6px 12px; border-radius: 50px; font-family:'Montserrat',sans-serif; font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; cursor:pointer; }
+        .btn-reasignar-card:hover { background: var(--primary); color: #fff; }
+
+        /* =================================================================
+           REGLAS DE TURNADO AUTOMÁTICO
+           ================================================================= */
+        .reglas-turnado-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .regla-turnado-item { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px 18px; display:flex; gap: 14px; align-items:flex-start; }
+        .regla-turnado-item.activa { border-color: var(--success-border); background: var(--success-light); }
+        .regla-turnado-texto { flex:1; }
+        .regla-turnado-nombre { font-family:'Montserrat',sans-serif; font-weight:700; font-size:0.82rem; color: var(--text-title); margin-bottom: 4px; }
+        .regla-turnado-desc { font-size: 0.76rem; color: var(--text-main); line-height:1.5; }
+
+        /* =================================================================
+           REASIGNACIÓN RÁPIDA
+           ================================================================= */
+        .reasignacion-grid { display:grid; grid-template-columns: 1fr 1fr 140px auto; gap: 16px; align-items:end; }
+
+        /* =================================================================
+           HISTORIAL DE REASIGNACIONES
+           ================================================================= */
+        .historial-reasig-item { display:flex; align-items:center; gap: 14px; padding: 12px 0; border-bottom: 1px dashed #E2E8F0; }
+        .historial-reasig-item:last-child { border-bottom: none; }
+        .historial-reasig-icono { width: 34px; height: 34px; border-radius: 50%; background: #F1F5F9; color: var(--primary); display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; font-size: 0.75rem; flex-shrink:0; }
+        .historial-reasig-texto { flex:1; font-size: 0.83rem; color: var(--text-main); }
+        .historial-reasig-texto b { color: var(--text-title); }
+        .historial-reasig-hora { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+
+        /* =================================================================
+           MODAL DE REASIGNACIÓN
+           ================================================================= */
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(7,18,36,0.45); backdrop-filter: blur(8px); z-index: 9999; justify-content:center; align-items:center; }
+        .modal-content-sm { background: var(--surface); width: 460px; padding: 32px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); position: relative; }
+        .btn-cerrar { position: absolute; top: 16px; right: 18px; background: #F8FAFC; border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 18px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; display:flex; align-items:center; justify-content:center; }
+        .btn-cerrar:hover { background: var(--danger-light); color: var(--danger); transform: rotate(90deg); }
+
+        .toast { position: fixed; bottom: 30px; right: 30px; background: var(--primary); color: #fff; padding: 16px 22px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); font-size: 0.85rem; font-weight: 600; display:flex; align-items:center; gap:10px; z-index: 10001; transform: translateY(20px); opacity: 0; transition: all 0.3s ease; }
+        .toast.mostrar { transform: translateY(0); opacity: 1; }
+        .toast-punto { width:9px; height:9px; border-radius:50%; background: var(--success); flex-shrink:0; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div>
+            <h1>MÓDULO DE AGENTES Y JERARQUÍAS</h1>
+            <p style="margin:4px 0 0 0; color:var(--text-muted); font-weight:600;">Estructura operativa, turnado automático y reasignación de carga</p>
+        </div>
+        <a href="#" class="btn btn-danger-outline">Cerrar Sesión</a>
+    </div>
+
+    <!-- BANNER TURNADO AUTOMÁTICO GLOBAL -->
+    <div class="banner-turnado">
+        <div class="banner-turnado-texto">
+            <div class="banner-turnado-titulo">MÓDULO DE AGENTES Y JERARQUÍAS</div>
+            <div class="banner-turnado-sub">Distribuye los folios nuevos entre subdirecciones y coordinadores según las reglas activas.</div>
+        </div>
+        <div class="banner-turnado-estado">
+            <span class="banner-turnado-chip on" id="chip-turnado">Activo</span>
+            <button type="button" class="master-switch activo" id="switch-turnado-global" onclick="alternarTurnadoGlobal()"></button>
+        </div>
+    </div>
+
+    <!-- ARBOL DE JERARQUÍA -->
+    <div class="panel">
+        <h2>Estructura de Mando</h2>
+        <p class="panel-sub">Agente superior, subdirecciones derivadas y coordinadores de campo asignados a cada una.</p>
+        <div class="arbol-wrap">
+            <ul class="arbol" id="arbol-jerarquia"></ul>
+        </div>
+    </div>
+
+    <!-- REGLAS DE TURNADO AUTOMÁTICO -->
+    <div class="panel">
+        <h2>Turnado Automático</h2>
+        <p class="panel-sub">Criterios disponibles para distribuir folios entrantes sin intervención manual. Puede activar más de una en conjunto.</p>
+        <div class="reglas-turnado-grid" id="reglas-turnado-grid"></div>
+    </div>
+
+    <!-- REASIGNACIÓN RÁPIDA -->
+    <div class="panel">
+        <h2>Reasignación</h2>
+        <p class="panel-sub">Mueva carga de trabajo de un agente a otro dentro de la misma estructura.</p>
+        <div class="reasignacion-grid">
+            <div>
+                <label>Agente de Origen</label>
+                <select class="form-control" id="reasig-origen"></select>
+            </div>
+            <div>
+                <label>Agente de Destino</label>
+                <select class="form-control" id="reasig-destino"></select>
+            </div>
+            <div>
+                <label>Folios a Mover</label>
+                <input type="number" min="1" value="1" class="form-control" id="reasig-cantidad">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="reasignarRapido()">Reasignar Ahora</button>
+        </div>
+    </div>
+
+    <!-- HISTORIAL DE REASIGNACIONES -->
+    <div class="panel">
+        <h2>Historial de Reasignaciones</h2>
+        <p class="panel-sub">Movimientos de carga registrados en la estructura, más recientes primero.</p>
+        <div id="historial-reasig-lista"></div>
+    </div>
+
+    <!-- MODAL DE REASIGNACIÓN POR TARJETA -->
+    <div class="modal-overlay" id="modal-reasignar">
+        <div class="modal-content-sm">
+            <button class="btn-cerrar" onclick="cerrarModalReasignar()">&times;</button>
+            <h2 style="margin-bottom: 6px;">Reasignar Carga</h2>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom: 22px;" id="modal-reasignar-sub">Mover folios asignados a este agente.</p>
+            <label>Agente de Destino</label>
+            <select class="form-control" id="modal-reasig-destino" style="margin-bottom: 16px;"></select>
+            <label>Folios a Mover</label>
+            <input type="number" min="1" value="1" class="form-control" id="modal-reasig-cantidad" style="margin-bottom: 24px;">
+            <button type="button" class="btn btn-success" style="width:100%;" onclick="confirmarReasignarModal()">Confirmar Reasignación</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"><span class="toast-punto"></span><span id="toast-texto">Movimiento registrado</span></div>
+
+    <script>
+        // ============================================================================
+        // DATOS EN DURO (invented, únicamente para efectos visuales de demostración)
+        // ============================================================================
+        const AGENTES = {
+            director: { id: 'dir-1', nombre: 'Lic. Marco Antonio Pérez Reyes', rol: 'AGENTE SUPERIOR', carga: 0, estado: 'disponible' },
+            subdirectores: [
+                {
+                    id: 'sub-1', nombre: 'Arq. Daniela Cortés Vega', rol: 'SUBAGENTES', carga: 8, estado: 'disponible', turnado: true,
+                    coordinadores: [
+                        { id: 'co-1', nombre: 'Raúl Jiménez Mora', rol: 'Coordinador de Campo', carga: 5, estado: 'campo' },
+                        { id: 'co-2', nombre: 'Brenda Solís Reyes', rol: 'Coordinador de Campo', carga: 3, estado: 'disponible' }
+                    ]
+                },
+                {
+                    id: 'sub-2', nombre: 'Ing. Marco Antonio Ibarra', rol: 'SUBAGENTES', carga: 14, estado: 'ocupado', turnado: true,
+                    coordinadores: [
+                        { id: 'co-3', nombre: 'Lucía Fernández Ríos', rol: 'Coordinador de Campo', carga: 6, estado: 'disponible' },
+                        { id: 'co-4', nombre: 'Hugo Ramírez Cano', rol: 'Coordinador de Campo', carga: 5, estado: 'campo' },
+                        { id: 'co-5', nombre: 'Paola Núñez Ortiz', rol: 'Coordinador de Campo', carga: 3, estado: 'ausente' }
+                    ]
+                },
+                {
+                    id: 'sub-3', nombre: 'Lic. Sergio Peña Delgado', rol: 'SUBAGENTES', carga: 6, estado: 'disponible', turnado: false,
+                    coordinadores: [
+                        { id: 'co-6', nombre: 'Ana Villareal Soto', rol: 'DERIVADOS', carga: 6, estado: 'disponible' }
+                    ]
+                }
+            ]
+        };
+
+        const ESTADO_TEXTO = { disponible: 'Disponible', ocupado: 'Ocupado', campo: 'En Campo', ausente: 'Ausente' };
+        const CARGA_MAXIMA_VISUAL = 15;
+
+        function todosLosAgentes() {
+            let lista = [{ id: AGENTES.director.id, nombre: AGENTES.director.nombre, rol: AGENTES.director.rol }];
+            AGENTES.subdirectores.forEach(s => {
+                lista.push({ id: s.id, nombre: s.nombre, rol: s.rol });
+                s.coordinadores.forEach(c => lista.push({ id: c.id, nombre: c.nombre, rol: c.rol }));
+            });
+            return lista;
+        }
+
+        function buscarAgentePorId(id) {
+            if (AGENTES.director.id === id) return AGENTES.director;
+            for (let s of AGENTES.subdirectores) {
+                if (s.id === id) return s;
+                for (let c of s.coordinadores) if (c.id === id) return c;
+            }
+            return null;
+        }
+
+        function iniciales(nombre) {
+            return nombre.split(' ').filter(p => p.length > 1 || /[A-ZÁÉÍÓÚÑ]/.test(p)).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+        }
+
+        // ============================================================================
+        // RENDER: ARBOL DE JERARQUÍA
+        // ============================================================================
+        function renderTarjetaAgente(agente, nivel) {
+            let badgeClase = nivel === 'director' ? 'badge-director' : (nivel === 'subdirector' ? 'badge-subdirector' : 'badge-coordinador');
+            let cardClase = nivel === 'director' ? 'nivel-director' : (nivel === 'subdirector' ? 'nivel-subdirector' : 'nivel-coordinador');
+            let pct = Math.min(100, Math.round((agente.carga / CARGA_MAXIMA_VISUAL) * 100));
+
+            let filaTurnado = '';
+            if (nivel === 'subdirector') {
+                filaTurnado = `
+                    <div class="toggle-mini">
+                        Turnado
+                        <button type="button" class="switch-mini ${agente.turnado ? 'activo' : ''}" onclick="alternarTurnadoSubdireccion('${agente.id}', this)"></button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="agente-card ${cardClase}" data-agente="${agente.id}">
+                    <div class="agente-head">
+                        <div class="agente-avatar">${iniciales(agente.nombre)}</div>
+                        <div>
+                            <div class="agente-nombre">${agente.nombre}</div>
+                            <div class="agente-rol">${agente.rol}</div>
+                        </div>
+                    </div>
+                    <span class="badge ${badgeClase}" style="margin-bottom:10px;">${nivel === 'director' ? 'Director' : (nivel === 'subdirector' ? 'Subdirector' : 'Coordinador')}</span>
+                    <div class="agente-estado"><span class="estado-punto estado-${agente.estado}"></span>${ESTADO_TEXTO[agente.estado]}</div>
+                    <div class="agente-carga-label"><span>Carga asignada</span><span id="carga-num-${agente.id}">${agente.carga} folios</span></div>
+                    <div class="agente-carga-track"><div class="agente-carga-fill" id="carga-fill-${agente.id}" style="width:${pct}%;"></div></div>
+                    <div class="agente-footer">
+                        ${filaTurnado}
+                        <button type="button" class="btn-reasignar-card" onclick="abrirModalReasignar('${agente.id}')">Reasignar</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderArbol() {
+            let raiz = document.getElementById('arbol-jerarquia');
+            let subHtml = AGENTES.subdirectores.map(sub => {
+                let coordHtml = sub.coordinadores.map(co => `<li>${renderTarjetaAgente(co, 'coordinador')}</li>`).join('');
+                return `
+                    <li>
+                        ${renderTarjetaAgente(sub, 'subdirector')}
+                        <ul>${coordHtml}</ul>
+                    </li>
+                `;
+            }).join('');
+
+            raiz.innerHTML = `
+                <li>
+                    ${renderTarjetaAgente(AGENTES.director, 'director')}
+                    <ul>${subHtml}</ul>
+                </li>
+            `;
+        }
+
+        // ============================================================================
+        // REGLAS DE TURNADO AUTOMÁTICO (visual, no ejecuta lógica real)
+        // ============================================================================
+        let REGLAS_TURNADO = [
+            { nombre: 'Distribución Equitativa', desc: 'Reparte los folios nuevos uno por uno entre los coordinadores disponibles, en orden rotativo.', activa: false },
+            { nombre: 'Asignación por Menor Carga', desc: 'Envía cada folio nuevo al coordinador con menos folios asignados en ese momento.', activa: true },
+            { nombre: 'Asignación por Zona Geográfica', desc: 'Turnado según la colonia del reporte, respetando la zonificación de cada coordinador.', activa: true },
+            { nombre: 'Prioridad por Antigüedad', desc: 'Da preferencia a los coordinadores con mayor tiempo en la subdirección al momento de turnar.', activa: false }
+        ];
+
+        function renderReglasTurnado() {
+            let cont = document.getElementById('reglas-turnado-grid');
+            cont.innerHTML = REGLAS_TURNADO.map((r, i) => `
+                <div class="regla-turnado-item ${r.activa ? 'activa' : ''}" id="regla-turnado-${i}">
+                    <div class="regla-turnado-texto">
+                        <div class="regla-turnado-nombre">${r.nombre}</div>
+                        <div class="regla-turnado-desc">${r.desc}</div>
+                    </div>
+                    <button type="button" class="switch-mini ${r.activa ? 'activo' : ''}" onclick="alternarReglaTurnado(${i})"></button>
+                </div>
+            `).join('');
+        }
+
+        function alternarReglaTurnado(i) {
+            REGLAS_TURNADO[i].activa = !REGLAS_TURNADO[i].activa;
+            renderReglasTurnado();
+        }
+
+        // ============================================================================
+        // TURNADO AUTOMÁTICO GLOBAL Y POR SUBDIRECCIÓN
+        // ============================================================================
+        let turnadoGlobalActivo = true;
+        function alternarTurnadoGlobal() {
+            turnadoGlobalActivo = !turnadoGlobalActivo;
+            document.getElementById('switch-turnado-global').classList.toggle('activo', turnadoGlobalActivo);
+            let chip = document.getElementById('chip-turnado');
+            chip.textContent = turnadoGlobalActivo ? 'Activo' : 'Inactivo';
+            chip.classList.toggle('on', turnadoGlobalActivo);
+            chip.classList.toggle('off', !turnadoGlobalActivo);
+        }
+
+        function alternarTurnadoSubdireccion(id, btn) {
+            let sub = AGENTES.subdirectores.find(s => s.id === id);
+            if (!sub) return;
+            sub.turnado = !sub.turnado;
+            btn.classList.toggle('activo', sub.turnado);
+        }
+
+        // ============================================================================
+        // SELECTS DE AGENTES (Reasignación Rápida y Modal)
+        // ============================================================================
+        function poblarSelectsAgentes() {
+            let opciones = todosLosAgentes().map(a => `<option value="${a.id}">${a.nombre} — ${a.rol}</option>`).join('');
+            document.getElementById('reasig-origen').innerHTML = opciones;
+            document.getElementById('reasig-destino').innerHTML = opciones;
+        }
+
+        // ============================================================================
+        // ACTUALIZAR CARGA EN TARJETA (visual)
+        // ============================================================================
+        function actualizarCargaVisual(id) {
+            let agente = buscarAgentePorId(id);
+            if (!agente) return;
+            let pct = Math.min(100, Math.round((agente.carga / CARGA_MAXIMA_VISUAL) * 100));
+            let num = document.getElementById('carga-num-' + id);
+            let fill = document.getElementById('carga-fill-' + id);
+            if (num) num.textContent = agente.carga + ' folios';
+            if (fill) fill.style.width = pct + '%';
+        }
+
+        // ============================================================================
+        // REASIGNACIÓN RÁPIDA (panel general)
+        // ============================================================================
+        function reasignarRapido() {
+            let origenId = document.getElementById('reasig-origen').value;
+            let destinoId = document.getElementById('reasig-destino').value;
+            let cantidad = parseInt(document.getElementById('reasig-cantidad').value) || 0;
+            ejecutarReasignacion(origenId, destinoId, cantidad);
+        }
+
+        function ejecutarReasignacion(origenId, destinoId, cantidad) {
+            if (!origenId || !destinoId) return;
+            if (origenId === destinoId) { mostrarToast('El agente de origen y destino no pueden ser el mismo.'); return; }
+            if (cantidad <= 0) { mostrarToast('Indique una cantidad válida de folios.'); return; }
+
+            let origen = buscarAgentePorId(origenId);
+            let destino = buscarAgentePorId(destinoId);
+            if (!origen || !destino) return;
+
+            let cantidadReal = Math.min(cantidad, origen.carga);
+            origen.carga -= cantidadReal;
+            destino.carga += cantidadReal;
+
+            actualizarCargaVisual(origenId);
+            actualizarCargaVisual(destinoId);
+            agregarHistorialReasignacion(origen.nombre, destino.nombre, cantidadReal);
+            mostrarToast(`${cantidadReal} folio(s) movidos de ${origen.nombre.split(' ').slice(-2).join(' ')} a ${destino.nombre.split(' ').slice(-2).join(' ')}.`);
+        }
+
+        // ============================================================================
+        // MODAL DE REASIGNACIÓN POR TARJETA
+        // ============================================================================
+        let agenteOrigenModal = null;
+        function abrirModalReasignar(id) {
+            agenteOrigenModal = id;
+            let agente = buscarAgentePorId(id);
+            document.getElementById('modal-reasignar-sub').textContent = `Mover folios asignados a ${agente.nombre} (${agente.carga} folios actualmente).`;
+            let opciones = todosLosAgentes().filter(a => a.id !== id).map(a => `<option value="${a.id}">${a.nombre} — ${a.rol}</option>`).join('');
+            document.getElementById('modal-reasig-destino').innerHTML = opciones;
+            document.getElementById('modal-reasig-cantidad').value = 1;
+            document.getElementById('modal-reasig-cantidad').max = agente.carga || 1;
+            document.getElementById('modal-reasignar').style.display = 'flex';
+        }
+        function cerrarModalReasignar() {
+            document.getElementById('modal-reasignar').style.display = 'none';
+            agenteOrigenModal = null;
+        }
+        function confirmarReasignarModal() {
+            let destinoId = document.getElementById('modal-reasig-destino').value;
+            let cantidad = parseInt(document.getElementById('modal-reasig-cantidad').value) || 0;
+            ejecutarReasignacion(agenteOrigenModal, destinoId, cantidad);
+            cerrarModalReasignar();
+        }
+        window.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) cerrarModalReasignar(); });
+
+        // ============================================================================
+        // HISTORIAL DE REASIGNACIONES
+        // ============================================================================
+        let HISTORIAL_INICIAL = [
+            { origen: 'Hugo Ramírez Cano', destino: 'Lucía Fernández Ríos', cantidad: 2, hace: 45 },
+            { origen: 'Paola Núñez Ortiz', destino: 'Hugo Ramírez Cano', cantidad: 1, hace: 120 },
+            { origen: 'Raúl Jiménez Mora', destino: 'Brenda Solís Reyes', cantidad: 3, hace: 260 }
+        ];
+
+        function agregarHistorialReasignacion(origen, destino, cantidad) {
+            let lista = document.getElementById('historial-reasig-lista');
+            let nodo = document.createElement('div');
+            nodo.className = 'historial-reasig-item';
+            nodo.innerHTML = `
+                <div class="historial-reasig-icono">${cantidad}</div>
+                <div class="historial-reasig-texto"><b>${origen}</b> turnó ${cantidad} folio(s) a <b>${destino}</b>.</div>
+                <div class="historial-reasig-hora">Justo ahora</div>
+            `;
+            lista.insertBefore(nodo, lista.firstChild);
+        }
+
+        function renderHistorialInicial() {
+            let lista = document.getElementById('historial-reasig-lista');
+            lista.innerHTML = HISTORIAL_INICIAL.map(h => `
+                <div class="historial-reasig-item">
+                    <div class="historial-reasig-icono">${h.cantidad}</div>
+                    <div class="historial-reasig-texto"><b>${h.origen}</b> turnó ${h.cantidad} folio(s) a <b>${h.destino}</b>.</div>
+                    <div class="historial-reasig-hora">Hace ${h.hace} min</div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================================
+        // TOAST
+        // ============================================================================
+        let toastTimeoutId = null;
+        function mostrarToast(texto) {
+            let toast = document.getElementById('toast');
+            document.getElementById('toast-texto').textContent = texto;
+            toast.classList.add('mostrar');
+            if (toastTimeoutId) clearTimeout(toastTimeoutId);
+            toastTimeoutId = setTimeout(() => toast.classList.remove('mostrar'), 3200);
+        }
+
+        // ============================================================================
+        // INIT
+        // ============================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            renderArbol();
+            renderReglasTurnado();
+            poblarSelectsAgentes();
+            renderHistorialInicial();
+
+            document.querySelectorAll('.panel, .banner-turnado').forEach((el, i) => {
+                el.style.opacity = '0'; el.style.transform = 'translateY(24px)'; el.style.transition = 'all 0.5s ease';
+                setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }, 70 * i);
+            });
+        });
+    </script>
+</body>
+</html>
