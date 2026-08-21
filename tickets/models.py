@@ -134,7 +134,7 @@ class TicketAyuda(models.Model):
 # ==========================================
 class TareaTicket(models.Model):
     ticket = models.ForeignKey(TicketAyuda, on_delete=models.CASCADE, related_name='tareas')
-    descripcion = models.TextField()
+    descripcion = models.CharField(max_length=2000)
     completada = models.BooleanField(default=False)
     evidencia_tarea = models.FileField(upload_to='evidencias_tareas/', blank=True, null=True)
     
