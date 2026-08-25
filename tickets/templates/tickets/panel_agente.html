@@ -11,6 +11,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 
     <style>
         :root {
@@ -154,6 +160,9 @@
 
         .historial-overlay-bg { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(7,18,36,0.3); z-index:10000; }
         .historial-overlay-bg.abierto { display:block; }
+        
+        .dt-buttons .dt-button { background: var(--surface) !important; color: var(--primary) !important; border: 1px solid var(--border-delicate) !important; font-family: 'Montserrat', sans-serif !important; font-weight: 800 !important; font-size: 0.65rem !important; border-radius: var(--radius-pill) !important; padding: 10px 24px !important; box-shadow: var(--shadow-card) !important; transition: all 0.3s; margin:0;}
+        .dt-buttons .dt-button:hover { background: var(--primary) !important; color: white !important;}
 
     </style>
 </head>
@@ -166,7 +175,10 @@
             <h1>MÓDULO DE MESA DE AYUDA CON CAMBIOS DE ESTATUS</h1>
             <p style="margin:0; color:var(--text-muted); font-weight:600;">Jerarquía Activa: <span style="color:var(--primary); text-transform: uppercase;">{{ rol_usuario }}</span></p>
         </div>
-        <a href="{% url 'salir' %}" class="btn btn-danger-outline">Cerrar Sesión</a>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div id="export-buttons-container"></div>
+            <a href="{% url 'salir' %}" class="btn btn-danger-outline">Cerrar Sesión</a>
+        </div>
     </div>
 
     <form method="GET" class="filter-panel">
@@ -814,6 +826,28 @@
                 `;
             }
 
+            if (OMNIPOTENTE && ticket.status !== 'Resuelto') {
+                htmlExtras += `
+                    <div style="background: #FFF7ED; padding: 25px; border-radius: 12px; margin-top: 20px; border: 1px dashed var(--warning);">
+                        <b style="color: var(--warning); font-size: 0.9rem; text-transform: uppercase;">⚡ Ejecución Express</b>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:15px; margin-top:5px;">Crear la acción, responder y cerrar en un solo paso.</p>
+                        <form onsubmit="enviarFormularioAJAX(event, this)">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" value="crear_y_completar_rapido">
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <input type="text" name="descripcion_tarea" class="form-control" placeholder="1. Acción realizada (Ej. Desazolve en calle principal...)" required style="padding:10px; font-size:0.85rem;">
+                                <input type="text" name="notas_agente" class="form-control" placeholder="2. Notas para el expediente (opcional)" style="padding:10px; font-size:0.85rem;">
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <input type="file" name="evidencia_tarea" class="form-control" multiple accept="image/*,.pdf" style="padding:8px; flex:1;">
+                                    <button type="submit" class="btn btn-warning" style="white-space:nowrap; padding:12px 25px; font-size:0.85rem;">Crear y Completar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                `;
+            }
+
             container.innerHTML = htmlContent + htmlExtras;
             
             document.getElementById('modal-detalle').style.display = 'flex';
@@ -868,6 +902,54 @@
         window.onclick = function(e) { if (e.target.classList.contains('modal-overlay')) cerrarModal(); }
     </script>
     
+    <div style="display:none;">
+        <table id="tabla-export" class="display" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Folio</th><th>Fecha</th><th>Área</th><th>Asunto</th><th>Estatus</th>
+                    <th>Director a Cargo</th><th>Sub / Coord</th>
+                    <th>Ciudadano</th><th>Colonia</th><th>Avance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in todos_los_tickets %}
+                <tr>
+                    <td>#{{ ticket.folio }}</td>
+                    <td>{{ ticket.fecha|date:"d/m/Y" }}</td>
+                    <td>{{ ticket.direccion.nombre_direccion|default:"N/A" }}</td>
+                    <td>{{ ticket.asunto }}</td>
+                    <td>{{ ticket.status }}</td>
+                    <td>{{ ticket.director_asignado.username|default:"-" }}</td>
+                    <td>{{ ticket.subdirector_asignado.username|default:"-" }} / {{ ticket.coordinador_asignado.username|default:"-" }}</td>
+                    <td>{{ ticket.nombre|default:"N/A" }}</td>
+                    <td>{{ ticket.colonia.nombre_colonia|default:"N/A" }}</td>
+                    <td>{{ ticket.porcentaje_avance }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            var tablaE = $('#tabla-export').DataTable({
+                dom: 'Bfrtip',
+                buttons: [
+                    { 
+                        extend: 'excelHtml5', 
+                        text: '📄 EXPORTAR EN EXCEL/CSV', 
+                        title: 'Reporte_General_Tickets',
+                        className: 'btn btn-primary',
+                        style: 'background: var(--primary); color: white; padding: 10px 15px; border-radius: 10px; font-weight: bold; border: none; font-size: 0.8rem; height: 100%;' // Override the dt classes
+                    }
+                ],
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+                pageLength: 10
+            });
+            tablaE.buttons().container().appendTo('#export-buttons-container');
+        });
+    </script>
+
     <form style="display:none;" id="form-token-global">{% csrf_token %}</form>
 </body>
 </html>

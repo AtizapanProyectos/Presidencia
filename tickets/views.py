@@ -478,6 +478,37 @@ def panel_agente(request):
                             ticket.status = 'En Validación'
                     ticket.save()
 
+            elif action_4d == 'crear_y_completar_rapido' and es_omnipotente:
+                descripcion = request.POST.get('descripcion_tarea')
+                nota_texto = request.POST.get('notas_agente', '')
+                evidencias = request.FILES.getlist('evidencia_tarea')
+                
+                if descripcion:
+                    tarea = TareaTicket.objects.create(
+                        ticket=ticket,
+                        descripcion=descripcion,
+                        completada=True,
+                        ejecutor=usuario_actual,
+                        fecha_completada=timezone.now()
+                    )
+                    
+                    for archivo in evidencias:
+                        EvidenciaTarea.objects.create(tarea=tarea, archivo=archivo)
+                        
+                    if nota_texto:
+                        nota_previa = ticket.observaciones if ticket.observaciones else ''
+                        ticket.observaciones = f"{nota_previa}\n [{tarea.descripcion}] - Ejecutada y resuelta por {usuario_actual.username}: {nota_texto}"
+                    
+                    # Recalcular porcentajes
+                    total_tareas = ticket.tareas.count()
+                    tareas_hechas = ticket.tareas.filter(completada=True).count()
+                    if total_tareas > 0:
+                        ticket.porcentaje_avance = int((tareas_hechas / total_tareas) * 100)
+                        if ticket.porcentaje_avance == 100:
+                            ticket.porcentaje_avance = 95
+                            ticket.status = 'En Validación'
+                    ticket.save()
+
             elif not action_4d:
                 nuevo_status = request.POST.get('status')
                 nuevo_porcentaje = request.POST.get('porcentaje')
@@ -600,6 +631,7 @@ def panel_agente(request):
         empleados_inferiores = User.objects.filter(perfilagente__direccion_asignada=area_usuario, perfilagente__rol='Coordinador')
 
     contexto = {
+        'todos_los_tickets': mis_tickets.order_by('-fecha'),
         'tickets_activos': mis_tickets_activos, 'tickets_resueltos': mis_tickets_resueltos,
         'puntos_json': json.dumps(puntos_data), 'colonias': colonias,
         'f_q': q, 'f_fecha_inicio': fecha_inicio, 'f_fecha_fin': fecha_fin, 
