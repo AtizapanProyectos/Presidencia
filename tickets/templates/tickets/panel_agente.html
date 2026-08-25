@@ -155,76 +155,6 @@
         .historial-overlay-bg { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(7,18,36,0.3); z-index:10000; }
         .historial-overlay-bg.abierto { display:block; }
 
-        /* =================================================================
-           TEMPORIZADORES Y VENCIMIENTOS
-           ================================================================= */
-        .seccion-modulo { margin-top: 35px; }
-        .seccion-modulo-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-        .seccion-modulo-titulo { font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.05rem; color:var(--primary); text-transform:uppercase; letter-spacing:0.4px; }
-        .seccion-modulo-sub { font-size:0.78rem; color:var(--text-muted); margin-bottom:18px; }
-
-        .temporizador-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .temporizador-card { background:var(--surface); border:1px solid #E2E8F0; border-radius:12px; padding:16px 18px; box-shadow: var(--shadow-card); position:relative; overflow:hidden; }
-        .temporizador-card .t-nombre { font-family:'Montserrat',sans-serif; font-weight:700; font-size:0.8rem; color:var(--text-main); margin-bottom:8px; }
-        .temporizador-card .t-valor { font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.3rem; margin-bottom:6px; }
-        .temporizador-card .t-detalle { font-size:0.72rem; color:var(--text-muted); font-weight:600; }
-        .temporizador-card .t-barra-track { background:#E2E8F0; border-radius:10px; height:6px; margin-top:10px; overflow:hidden; }
-        .temporizador-card .t-barra-fill { height:100%; border-radius:10px; transition: width 1s ease; }
-
-        .t-verde .t-valor { color: var(--success); }
-        .t-verde .t-barra-fill { background: var(--success); }
-        .t-ambar .t-valor { color: var(--warning); }
-        .t-ambar .t-barra-fill { background: var(--warning); }
-        .t-rojo .t-valor { color: var(--danger); }
-        .t-rojo .t-barra-fill { background: var(--danger); }
-
-        /* =================================================================
-           REGLAS DEL EXPEDIENTE (motor visual, no ejecuta nada real)
-           ================================================================= */
-        .reglas-lista { display:flex; flex-direction:column; gap:12px; }
-        .regla-item { background:var(--surface); border:1px solid #E2E8F0; border-radius:12px; padding:16px 18px; box-shadow: var(--shadow-card); display:flex; gap:14px; align-items:flex-start; }
-        .regla-item.regla-inactiva { opacity: 0.55; }
-        .regla-texto { flex: 1; }
-        .regla-nombre { font-family:'Montserrat',sans-serif; font-weight:700; font-size:0.88rem; color:var(--primary); margin-bottom:4px; }
-        .regla-desc { font-size:0.8rem; color:var(--text-main); line-height:1.5; margin-bottom:8px; }
-        .regla-meta { display:flex; gap:8px; flex-wrap:wrap; }
-        .regla-meta span { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; padding:3px 10px; border-radius:50px; background:#F1F5F9; color:var(--text-muted); font-family:'Montserrat',sans-serif; }
-
-        .regla-switch { flex-shrink:0; width:44px; height:24px; border-radius:50px; background:var(--gray-pending); position:relative; cursor:pointer; transition: background 0.25s ease; border:none; }
-        .regla-switch::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 3px rgba(0,0,0,0.25); transition: left 0.25s ease; }
-        .regla-switch.activa { background: var(--success); }
-        .regla-switch.activa::after { left:23px; }
-
-        /* =================================================================
-           DISPARADORES DE REGLAS Y NOTIFICACIONES
-           ================================================================= */
-        .disparadores-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
-        .disparador-item { display:flex; align-items:center; gap:14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:12px 16px; }
-        .disparador-punto { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-        .disparador-punto.activo { background: var(--success); box-shadow: 0 0 0 4px var(--success-light); }
-        .disparador-punto.pausa { background: var(--gray-text); box-shadow: 0 0 0 4px #F1F5F9; }
-        .disparador-cuerpo { flex:1; }
-        .disparador-evento { font-size:0.83rem; font-weight:700; color:var(--text-main); }
-        .disparador-accion { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
-        .disparador-estado { font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; padding:4px 10px; border-radius:50px; font-family:'Montserrat',sans-serif; white-space:nowrap; }
-        .disparador-estado.activo { background:var(--success-light); color:var(--success); }
-        .disparador-estado.pausa { background:#F1F5F9; color:var(--gray-text); }
-
-        .notif-feed-wrap { background:var(--primary); border-radius:14px; padding:18px 20px; }
-        .notif-feed-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-        .notif-feed-titulo { color:#FFFFFF; font-family:'Montserrat',sans-serif; font-weight:700; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; }
-        .notif-feed-live { display:flex; align-items:center; gap:6px; font-size:0.65rem; color:var(--gold-accent); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; font-family:'Montserrat',sans-serif; }
-        .notif-punto-live { width:8px; height:8px; border-radius:50%; background:#22C55E; animation: notifPulso 1.4s infinite; }
-        @keyframes notifPulso { 0% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(1.4); } 100% { opacity:1; transform:scale(1); } }
-
-        .notif-feed-lista { display:flex; flex-direction:column; gap:8px; max-height: 260px; overflow-y:auto; }
-        .notif-item { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 14px; display:flex; gap:10px; align-items:flex-start; }
-        .notif-item.notif-nueva { animation: notifEntrada 0.5s ease; border-color: rgba(193,166,97,0.55); background: rgba(193,166,97,0.12); }
-        @keyframes notifEntrada { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: translateY(0); } }
-        .notif-canal { font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; color: var(--gold-accent); background: rgba(193,166,97,0.15); padding:3px 8px; border-radius:50px; flex-shrink:0; font-family:'Montserrat',sans-serif; white-space:nowrap; }
-        .notif-cuerpo { flex:1; }
-        .notif-mensaje { font-size:0.78rem; color:#F1F5F9; line-height:1.4; }
-        .notif-pie { font-size:0.65rem; color:#94A3B8; margin-top:4px; display:flex; gap:8px; }
     </style>
 </head>
 <body>
@@ -286,7 +216,7 @@
                         <p style="margin: 0 0 8px 0; font-weight: 600; color: var(--text-main);">{{ ticket.asunto }}</p>
                         <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between;">
                             <span> {{ ticket.colonia.nombre_colonia }}</span>
-                            <span style="color: {% if ticket.dias_abierto > 3 %}var(--danger){% else %}var(--warning){% endif %}; font-weight: 700;" title="Ver detalle en Temporizadores y Vencimientos">Rezago: {{ ticket.dias_abierto }} d</span>
+                            <span style="color: {% if ticket.dias_abierto > 3 %}var(--danger){% else %}var(--warning){% endif %}; font-weight: 700;">Rezago: {{ ticket.dias_abierto }} d</span>
                         </div>
                         
                         <div style="background:#e2e8f0; border-radius:10px; height:6px; margin-top:12px; overflow:hidden;">
@@ -621,203 +551,6 @@
             }
         }
 
-        // ============================================================================
-        // TEMPORIZADORES Y VENCIMIENTOS
-        // Datos calculados con base en el folio, sobre un límite de servicio invenado
-        // para efectos visuales. No representa un cálculo real de SLA en backend.
-        // ============================================================================
-        function generarSeccionTemporizadores(ticket) {
-            let diasAbierto = ticket.dias_abierto || 0;
-            let limites = [
-                { etiqueta: "SLA General del Trámite", tope: 5 },
-                { etiqueta: "Primera Respuesta", tope: 1 },
-                { etiqueta: "Turno a Campo", tope: 3 },
-                { etiqueta: "Cierre y Validación", tope: 7 }
-            ];
-
-            let tarjetas = limites.map(l => {
-                let restante = l.tope - diasAbierto;
-                let claseColor = "t-verde";
-                let valorTexto = "";
-                if (ticket.status === 'Resuelto') {
-                    claseColor = "t-verde";
-                    valorTexto = "Cumplido";
-                    restante = l.tope;
-                } else if (restante < 0) {
-                    claseColor = "t-rojo";
-                    valorTexto = "Vencido hace " + Math.abs(restante) + (Math.abs(restante) === 1 ? " día" : " días");
-                } else if (restante <= 1) {
-                    claseColor = "t-ambar";
-                    valorTexto = restante === 0 ? "Vence hoy" : "Vence en " + restante + " día";
-                } else {
-                    claseColor = "t-verde";
-                    valorTexto = "Vence en " + restante + " días";
-                }
-                let pct = Math.max(0, Math.min(100, Math.round((diasAbierto / l.tope) * 100)));
-                if (ticket.status === 'Resuelto') pct = 100;
-
-                return `
-                    <div class="temporizador-card ${claseColor}">
-                        <div class="t-nombre">${l.etiqueta}</div>
-                        <div class="t-valor">${valorTexto}</div>
-                        <div class="t-detalle">Tope operativo: ${l.tope} días desde ingreso</div>
-                        <div class="t-barra-track"><div class="t-barra-fill" style="width:${pct}%;"></div></div>
-                    </div>
-                `;
-            }).join("");
-
-            return `
-                <div class="seccion-modulo">
-                    <div class="seccion-modulo-header">
-                        <div class="seccion-modulo-titulo">Temporizadores y Vencimientos</div>
-                    </div>
-                    <div class="seccion-modulo-sub">Control de tiempos de servicio calculados a partir del rezago del folio (${diasAbierto} ${diasAbierto === 1 ? 'día' : 'días'} abierto).</div>
-                    <div class="temporizador-grid">${tarjetas}</div>
-                </div>
-            `;
-        }
-
-        // ============================================================================
-        // REGLAS DEL EXPEDIENTE
-        // Catálogo de reglas de ejemplo. Los interruptores cambian de estado visual
-        // únicamente en el navegador; no se envía ni se guarda ninguna información.
-        // ============================================================================
-        function generarSeccionReglas(ticket) {
-            let catalogo = [
-                { nombre: "Escalamiento por Rezago", desc: "Si el folio supera 3 días sin movimiento, se notifica automáticamente al Subdirector en turno.", cond: "dias_abierto > 3", accion: "Notificar a Subdirección", activa: (ticket.dias_abierto || 0) > 3 },
-                { nombre: "Prioridad por Zona", desc: "Los folios ubicados en colonias marcadas como zona prioritaria suben de prioridad de forma automática.", cond: "colonia = zona prioritaria", accion: "Elevar prioridad", activa: true },
-                { nombre: "Cierre por Inactividad", desc: "Folios resueltos sin observaciones del ciudadano durante 15 días se archivan de forma automática.", cond: "status = Resuelto, 15 días sin respuesta", accion: "Archivar expediente", activa: ticket.status === 'Resuelto' },
-                { nombre: "Doble Validación", desc: "Los trámites de la dependencia asignada requieren visto bueno de dos niveles antes de poder cerrarse.", cond: "dependencia en catálogo crítico", accion: "Bloquear cierre sin segunda firma", activa: false },
-                { nombre: "Reasignación por Ausencia", desc: "Si el responsable en turno no registra actividad durante 48 horas, el folio se reasigna al siguiente disponible.", cond: "última actividad mayor a 48 horas", accion: "Reasignar automáticamente", activa: true }
-            ];
-
-            let filas = catalogo.map((r, i) => `
-                <div class="regla-item ${r.activa ? '' : 'regla-inactiva'}">
-                    <div class="regla-texto">
-                        <div class="regla-nombre">${r.nombre}</div>
-                        <div class="regla-desc">${r.desc}</div>
-                        <div class="regla-meta">
-                            <span>Condición: ${r.cond}</span>
-                            <span>Acción: ${r.accion}</span>
-                        </div>
-                    </div>
-                    <button type="button" class="regla-switch ${r.activa ? 'activa' : ''}" onclick="this.classList.toggle('activa')"></button>
-                </div>
-            `).join("");
-
-            return `
-                <div class="seccion-modulo">
-                    <div class="seccion-modulo-header">
-                        <div class="seccion-modulo-titulo">Reglas del Expediente</div>
-                    </div>
-                    <div class="seccion-modulo-sub">Condiciones configuradas para este tipo de trámite. Actívelas o desactívelas según el criterio del área responsable.</div>
-                    <div class="reglas-lista">${filas}</div>
-                </div>
-            `;
-        }
-
-        // ============================================================================
-        // DISPARADORES DE REGLAS Y NOTIFICACIONES
-        // Catálogo de eventos y bandeja de notificaciones simuladas para efectos
-        // de demostración visual. Los datos son de ejemplo y no se envían a nadie.
-        // ============================================================================
-        function generarSeccionDisparadores(ticket) {
-            let disparadores = [
-                { evento: "Cambio de estatus a En Proceso", accion: "Envío de correo al solicitante", estado: "Activo" },
-                { evento: "Vencimiento de SLA General (5 días)", accion: "Alerta a Subdirector y Coordinador en turno", estado: "Activo" },
-                { evento: "Carga de evidencia fotográfica", accion: "Notificación al panel de Dirección", estado: "Activo" },
-                { evento: "Folio marcado como Resuelto", accion: "Envío de encuesta de satisfacción al ciudadano", estado: "En pausa" },
-                { evento: "Reingreso de folio cerrado", accion: "Alerta prioritaria a Dirección General", estado: "Activo" }
-            ];
-
-            let filasDisparadores = disparadores.map(d => `
-                <div class="disparador-item">
-                    <span class="disparador-punto ${d.estado === 'Activo' ? 'activo' : 'pausa'}"></span>
-                    <div class="disparador-cuerpo">
-                        <div class="disparador-evento">${d.evento}</div>
-                        <div class="disparador-accion">Dispara: ${d.accion}</div>
-                    </div>
-                    <span class="disparador-estado ${d.estado === 'Activo' ? 'activo' : 'pausa'}">${d.estado}</span>
-                </div>
-            `).join("");
-
-            let plantillasNotif = [
-                { canal: "Correo", destinatario: ticket.email || "solicitante@correo.gob.mx", mensaje: "Se notificó al solicitante el avance del folio #" + ticket.folio + ".", estado: "Enviada" },
-                { canal: "SMS", destinatario: ticket.telefono || "55 0000 0000", mensaje: "Actualización disponible para el trámite #" + ticket.folio + ".", estado: "Entregada" },
-                { canal: "Sistema", destinatario: ticket.subdirector && ticket.subdirector !== 'Sin asignar' ? ticket.subdirector : "Subdirección en turno", mensaje: "Folio #" + ticket.folio + " turnado para seguimiento.", estado: "Leída" }
-            ];
-
-            let horaBase = new Date();
-            let itemsIniciales = plantillasNotif.map((n, i) => {
-                let hora = new Date(horaBase.getTime() - (i + 1) * 9 * 60000);
-                let horaStr = hora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-                return `
-                    <div class="notif-item" data-notif="1">
-                        <span class="notif-canal">${n.canal}</span>
-                        <div class="notif-cuerpo">
-                            <div class="notif-mensaje">${n.mensaje}</div>
-                            <div class="notif-pie"><span>Para: ${n.destinatario}</span><span>${horaStr}</span><span>${n.estado}</span></div>
-                        </div>
-                    </div>
-                `;
-            }).join("");
-
-            return `
-                <div class="seccion-modulo">
-                    <div class="seccion-modulo-header">
-                        <div class="seccion-modulo-titulo">Disparadores de Reglas</div>
-                    </div>
-                    <div class="seccion-modulo-sub">Eventos del expediente que activan una acción automática dentro del flujo operativo.</div>
-                    <div class="disparadores-grid">${filasDisparadores}</div>
-
-                    <div class="seccion-modulo-header">
-                        <div class="seccion-modulo-titulo" style="color:#FFFFFF;"></div>
-                    </div>
-                    <div class="notif-feed-wrap">
-                        <div class="notif-feed-header">
-                            <div class="notif-feed-titulo">Bandeja de Notificaciones</div>
-                            <div class="notif-feed-live"><span class="notif-punto-live"></span>En vivo</div>
-                        </div>
-                        <div class="notif-feed-lista" id="notif-feed-lista">${itemsIniciales}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Simulación de notificaciones entrando en vivo mientras el expediente está abierto.
-        let notifIntervalId = null;
-        function iniciarSimulacionNotificaciones(ticket) {
-            if (notifIntervalId) clearInterval(notifIntervalId);
-            let eventos = [
-                "Se registró consulta del estatus por parte del solicitante.",
-                "Recordatorio automático de vencimiento enviado al responsable.",
-                "El sistema verificó el cumplimiento de la regla de escalamiento.",
-                "Se generó respaldo del expediente digital.",
-                "Coordinación de campo confirmó recepción del turno."
-            ];
-            let canales = ["Sistema", "Correo", "SMS"];
-            notifIntervalId = setInterval(() => {
-                let lista = document.getElementById('notif-feed-lista');
-                if (!lista) { clearInterval(notifIntervalId); return; }
-                let msg = eventos[Math.floor(Math.random() * eventos.length)];
-                let canal = canales[Math.floor(Math.random() * canales.length)];
-                let horaStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-                let nodo = document.createElement('div');
-                nodo.className = 'notif-item notif-nueva';
-                nodo.innerHTML = `
-                    <span class="notif-canal">${canal}</span>
-                    <div class="notif-cuerpo">
-                        <div class="notif-mensaje">${msg}</div>
-                        <div class="notif-pie"><span>Folio #${ticket.folio}</span><span>${horaStr}</span><span>Enviada</span></div>
-                    </div>
-                `;
-                lista.insertBefore(nodo, lista.firstChild);
-                setTimeout(() => nodo.classList.remove('notif-nueva'), 1200);
-            }, 6000);
-        }
-        function detenerSimulacionNotificaciones() {
-            if (notifIntervalId) { clearInterval(notifIntervalId); notifIntervalId = null; }
-        }
 
         // ============================================================================
         // CEREBRO 4D FRONTEND (Construcción del Modal)
@@ -992,10 +725,6 @@
             });
             htmlContent += `</div>`; 
 
-            htmlContent += generarSeccionTemporizadores(ticket);
-            htmlContent += generarSeccionReglas(ticket);
-            htmlContent += generarSeccionDisparadores(ticket);
-
             let htmlExtras = "";
             if (ROL_ACTUAL === 'Director' && ticket.status === 'En Validación') {
                 htmlExtras += ``;
@@ -1093,7 +822,6 @@
                 if(obj) obj.style.width = trackPercent + "%"; 
             }, 100);
 
-            iniciarSimulacionNotificaciones(ticket);
             
             if(animarMapa) {
                 var divC = document.getElementById('contenedor-mapa'), pSin = document.getElementById('m-sin-mapa');
@@ -1135,7 +863,7 @@
         }
         function prepararEnvioDirector() { document.getElementById('tareas_list_input').value = tareasArray.join('|'); tareasArray = [];}
 
-        function cerrarModal() { document.getElementById('modal-detalle').style.display = 'none'; tareasArray = []; detenerSimulacionNotificaciones(); }
+        function cerrarModal() { document.getElementById('modal-detalle').style.display = 'none'; tareasArray = []; }
         window.onclick = function(e) { if (e.target.classList.contains('modal-overlay')) cerrarModal(); }
     </script>
     
