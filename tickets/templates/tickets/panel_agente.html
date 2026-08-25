@@ -519,7 +519,9 @@
                 
                 if (!postResp.ok) throw new Error("Error en POST");
 
-                let getResp = await fetch(window.location.href + "?ajax=1", {
+                let getRespUrl = new URL(window.location.href);
+                getRespUrl.searchParams.set('ajax', '1');
+                let getResp = await fetch(getRespUrl.toString(), {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 
