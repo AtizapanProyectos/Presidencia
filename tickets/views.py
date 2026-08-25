@@ -384,19 +384,25 @@ def panel_agente(request):
         area_usuario = None
         es_especial = False
 
+    usuarios_omnipotentes = ['dir_servicios_publicos', 'sub_servicios_publicos', 'coord_servicios_publicos']
+    es_omnipotente = usuario_actual.username in usuarios_omnipotentes
+
     if request.method == 'POST':
         folio_ticket = request.POST.get('folio_ticket')
         action_4d = request.POST.get('action_4d')
         
         try:
-            ticket = TicketAyuda.objects.get(
-                Q(folio=folio_ticket) & (
-                    Q(agente_asignado=usuario_actual) | 
-                    Q(director_asignado=usuario_actual) | 
-                    Q(subdirector_asignado=usuario_actual) | 
-                    Q(coordinador_asignado=usuario_actual)
+            if es_omnipotente:
+                ticket = TicketAyuda.objects.get(folio=folio_ticket)
+            else:
+                ticket = TicketAyuda.objects.get(
+                    Q(folio=folio_ticket) & (
+                        Q(agente_asignado=usuario_actual) | 
+                        Q(director_asignado=usuario_actual) | 
+                        Q(subdirector_asignado=usuario_actual) | 
+                        Q(coordinador_asignado=usuario_actual)
+                    )
                 )
-            )
 
             if action_4d == 'director_plan':
                 tareas_nuevas = request.POST.get('tareas_list', '') 
@@ -416,14 +422,14 @@ def panel_agente(request):
                     ticket.coordinador_asignado_id = coordinador_id
                     ticket.save()
             
-            elif action_4d == 'aprobar_ticket' and rol_usuario == 'Director':
+            elif action_4d == 'aprobar_ticket' and (rol_usuario == 'Director' or es_omnipotente):
                 ticket.status = 'Resuelto'
                 ticket.porcentaje_avance = 100
                 nota_previa = ticket.observaciones if ticket.observaciones else ''
                 ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Ticket validado y cerrado por la Direccion."
                 ticket.save()
 
-            elif action_4d == 'rechazar_ticket' and rol_usuario == 'Director':
+            elif action_4d == 'rechazar_ticket' and (rol_usuario == 'Director' or es_omnipotente):
                 nota_rechazo = request.POST.get('notas_agente', 'Revision requerida')
                 evidencia = request.FILES.get('evidencia_tarea')
                 
@@ -498,23 +504,27 @@ def panel_agente(request):
     fecha_fin = request.GET.get('fecha_fin', '')
     colonia_id = request.GET.get('colonia_id', '')
 
-    mis_tickets = TicketAyuda.objects.select_related(
-        'colonia',
-        'colonia_ciudadano',
-        'direccion',
-        'director_asignado',
-        'subdirector_asignado',
-        'coordinador_asignado'
-    ).prefetch_related(
-        'tareas',
-        'tareas__evidencias_multiples',
-        'tareas__ejecutor'
-    ).filter(
-        Q(agente_asignado=usuario_actual) |
-        Q(director_asignado=usuario_actual) |
-        Q(subdirector_asignado=usuario_actual) |
-        Q(coordinador_asignado=usuario_actual)
-    ).distinct()
+    if es_omnipotente and area_usuario:
+        mis_tickets = TicketAyuda.objects.select_related(
+            'colonia', 'colonia_ciudadano', 'direccion',
+            'director_asignado', 'subdirector_asignado', 'coordinador_asignado'
+        ).prefetch_related(
+            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
+        ).filter(
+            direccion=area_usuario
+        ).distinct()
+    else:
+        mis_tickets = TicketAyuda.objects.select_related(
+            'colonia', 'colonia_ciudadano', 'direccion',
+            'director_asignado', 'subdirector_asignado', 'coordinador_asignado'
+        ).prefetch_related(
+            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
+        ).filter(
+            Q(agente_asignado=usuario_actual) |
+            Q(director_asignado=usuario_actual) |
+            Q(subdirector_asignado=usuario_actual) |
+            Q(coordinador_asignado=usuario_actual)
+        ).distinct()
 
     if q: mis_tickets = mis_tickets.filter(Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(email__icontains=q) | Q(apellido_paterno__icontains=q) | Q(apellido_materno__icontains=q) | Q(asunto__icontains=q) | Q(calle__icontains=q))
     if fecha_inicio: mis_tickets = mis_tickets.filter(fecha__gte=fecha_inicio)
@@ -582,7 +592,9 @@ def panel_agente(request):
     colonias = CatColonia.objects.all().order_by('nombre_colonia')
 
     empleados_inferiores = []
-    if rol_usuario == 'Director' and area_usuario:
+    if es_omnipotente and area_usuario:
+        empleados_inferiores = User.objects.filter(perfilagente__direccion_asignada=area_usuario).exclude(id=usuario_actual.id)
+    elif rol_usuario == 'Director' and area_usuario:
         empleados_inferiores = User.objects.filter(perfilagente__direccion_asignada=area_usuario, perfilagente__rol='Subdirector')
     elif rol_usuario == 'Subdirector' and area_usuario:
         empleados_inferiores = User.objects.filter(perfilagente__direccion_asignada=area_usuario, perfilagente__rol='Coordinador')
@@ -594,6 +606,7 @@ def panel_agente(request):
         'f_colonia_id': int(colonia_id) if str(colonia_id).isdigit() else '',
         'rol_usuario': rol_usuario,
         'es_especial': "True" if es_especial else "False",
+        'es_omnipotente': "True" if es_omnipotente else "False",
         'empleados_inferiores': empleados_inferiores
     }
     return render(request, 'tickets/panel_agente.html', contexto)

@@ -425,6 +425,7 @@
         var mapDet = null, markerDet = null;
         const ROL_ACTUAL = "{{ rol_usuario }}";
         const ES_ESPECIAL = "{{ es_especial }}" === "True";
+        const OMNIPOTENTE = "{{ es_omnipotente }}" === "True";
 
         // ============================================================================
         // MOTOR AJAX ROBUSTO (CERO ERRORES DE CONEXIÓN)
@@ -699,7 +700,7 @@
                         `;
                     }
                 } else {
-                    if ((ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador') && ticket.status !== 'Resuelto') {
+                    if ((ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador' || OMNIPOTENTE) && ticket.status !== 'Resuelto') {
                         htmlContent += `
                             <form onsubmit="enviarFormularioAJAX(event, this)" style="border-top: 1px dashed var(--border-delicate); margin-top: 15px; padding-top: 15px;">
                                 <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
@@ -726,11 +727,11 @@
             htmlContent += `</div>`; 
 
             let htmlExtras = "";
-            if (ROL_ACTUAL === 'Director' && ticket.status === 'En Validación') {
+            if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.status === 'En Validación') {
                 htmlExtras += ``;
             }
 
-            if (ROL_ACTUAL === 'Director' && ticket.tareas.length === 0 && ticket.status !== 'Resuelto') {
+            if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.tareas.length === 0 && ticket.status !== 'Resuelto') {
                 
                 let sugerenciaIA = puntosBD.find(p => p.asunto === ticket.asunto && p.tareas.length > 0 && p.folio !== ticket.folio);
                 let bloqueIA = "";
@@ -776,7 +777,7 @@
                 `;
             }
 
-            if ((ROL_ACTUAL === 'Subdirector' || (ROL_ACTUAL === 'Coordinador' && ES_ESPECIAL)) && ticket.status !== 'Resuelto') {
+            if ((ROL_ACTUAL === 'Subdirector' || OMNIPOTENTE || (ROL_ACTUAL === 'Coordinador' && ES_ESPECIAL)) && ticket.status !== 'Resuelto') {
                 htmlExtras += `
                     <div style="background: #F8FAFC; padding: 25px; border-radius: 12px; margin-top: 15px; border: 1px dashed var(--primary);">
                         <b style="color: var(--primary); font-size: 0.9rem; text-transform: uppercase;">+ Añadir Nodo de Acción Adicional</b>
@@ -791,7 +792,7 @@
                 `;
             }
 
-            if (ROL_ACTUAL === 'Subdirector' && ticket.status !== 'Resuelto' && !hasCoordinador) {
+            if ((ROL_ACTUAL === 'Subdirector' || OMNIPOTENTE) && ticket.status !== 'Resuelto' && !hasCoordinador) {
                 htmlExtras += `
                     <div style="background: white; padding: 25px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border-delicate); box-shadow: var(--shadow-card);">
                         <h4 style="margin-top:0; color:var(--warning); font-size: 1.1rem;">Turnar a Operación de Campo</h4>
