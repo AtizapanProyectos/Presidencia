@@ -93,7 +93,7 @@ def corregir_texto_ia(request):
 
 
 def hola_qr(request):
-    return render(request, 'tickets/hola_qr.html')
+    return redirect('https://pedrorodriguezvillegas.taplink.site/')
 
 
 @login_required(login_url='/')
