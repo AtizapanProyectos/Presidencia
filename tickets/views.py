@@ -92,6 +92,10 @@ def corregir_texto_ia(request):
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
+def hola_qr(request):
+    return render(request, 'tickets/hola_qr.html')
+
+
 @login_required(login_url='/')
 def inicio(request):
     if not request.user.is_superuser:
