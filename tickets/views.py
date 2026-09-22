@@ -16,7 +16,8 @@ from groq import Groq
 
 
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+groq_key = os.environ.get("GROQ_API_KEY")
+client = Groq(api_key=groq_key) if groq_key else None
 
 def salir(request):
     logout(request)
@@ -398,6 +399,14 @@ def panel_agente(request):
         try:
             if es_omnipotente:
                 ticket = TicketAyuda.objects.get(folio=folio_ticket)
+            elif rol_usuario == 'Director' and area_usuario:
+                ticket = TicketAyuda.objects.get(
+                    Q(folio=folio_ticket) & (
+                        Q(director_asignado=usuario_actual) |
+                        Q(direccion=area_usuario) |
+                        Q(agente_asignado=usuario_actual)
+                    )
+                )
             else:
                 ticket = TicketAyuda.objects.get(
                     Q(folio=folio_ticket) & (
@@ -408,6 +417,9 @@ def panel_agente(request):
                     )
                 )
 
+            if rol_usuario == 'Director' and not ticket.director_asignado:
+                ticket.director_asignado = usuario_actual
+
             if action_4d == 'director_plan':
                 tareas_nuevas = request.POST.get('tareas_list', '') 
                 subdirector_id = request.POST.get('subdirector_id')
@@ -415,9 +427,19 @@ def panel_agente(request):
                     for desc in tareas_nuevas.split('|'):
                         if desc.strip():
                             TareaTicket.objects.create(ticket=ticket, descripcion=desc.strip())
+                    if ticket.status == 'Nuevo':
+                        ticket.status = 'En Proceso'
                 if subdirector_id:
                     ticket.subdirector_asignado_id = subdirector_id
                     ticket.status = 'En Proceso'
+
+                # Recalcular porcentajes de avance por si se agregaron nuevas tareas
+                total_tareas = ticket.tareas.count()
+                if total_tareas > 0:
+                    tareas_hechas = ticket.tareas.filter(completada=True).count()
+                    ticket.porcentaje_avance = int((tareas_hechas / total_tareas) * 100)
+                    if ticket.porcentaje_avance < 100 and ticket.status == 'En Validación':
+                        ticket.status = 'En Proceso'
                 ticket.save()
 
             elif action_4d == 'subdirector_turnar':
@@ -429,8 +451,12 @@ def panel_agente(request):
             elif action_4d == 'aprobar_ticket' and (rol_usuario == 'Director' or es_omnipotente):
                 ticket.status = 'Resuelto'
                 ticket.porcentaje_avance = 100
+                nota_texto = request.POST.get('notas_agente', '')
                 nota_previa = ticket.observaciones if ticket.observaciones else ''
-                ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Ticket validado y cerrado por la Direccion."
+                if nota_texto:
+                    ticket.observaciones = f"{nota_previa}\n\n[DIRECCIÓN]: {nota_texto}\n[SISTEMA]: Ticket validado y cerrado por la Dirección."
+                else:
+                    ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Ticket validado y cerrado por la Dirección."
                 ticket.save()
 
             elif action_4d == 'rechazar_ticket' and (rol_usuario == 'Director' or es_omnipotente):
@@ -482,7 +508,7 @@ def panel_agente(request):
                             ticket.status = 'En Validación'
                     ticket.save()
 
-            elif action_4d == 'crear_y_completar_rapido' and es_omnipotente:
+            elif action_4d == 'crear_y_completar_rapido' and (rol_usuario == 'Director' or es_omnipotente):
                 descripcion = request.POST.get('descripcion_tarea')
                 nota_texto = request.POST.get('notas_agente', '')
                 evidencias = request.FILES.getlist('evidencia_tarea')
@@ -503,6 +529,9 @@ def panel_agente(request):
                         nota_previa = ticket.observaciones if ticket.observaciones else ''
                         ticket.observaciones = f"{nota_previa}\n [{tarea.descripcion}] - Ejecutada y resuelta por {usuario_actual.username}: {nota_texto}"
                     
+                    if ticket.status == 'Nuevo':
+                        ticket.status = 'En Proceso'
+
                     # Recalcular porcentajes
                     total_tareas = ticket.tareas.count()
                     tareas_hechas = ticket.tareas.filter(completada=True).count()
@@ -547,6 +576,17 @@ def panel_agente(request):
             'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
         ).filter(
             direccion=area_usuario
+        ).distinct()
+    elif rol_usuario == 'Director' and area_usuario:
+        mis_tickets = TicketAyuda.objects.select_related(
+            'colonia', 'colonia_ciudadano', 'direccion',
+            'director_asignado', 'subdirector_asignado', 'coordinador_asignado'
+        ).prefetch_related(
+            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
+        ).filter(
+            Q(direccion=area_usuario) |
+            Q(director_asignado=usuario_actual) |
+            Q(agente_asignado=usuario_actual)
         ).distinct()
     else:
         mis_tickets = TicketAyuda.objects.select_related(

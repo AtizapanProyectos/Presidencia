@@ -161,9 +161,18 @@
         .historial-overlay-bg { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(7,18,36,0.3); z-index:10000; }
         .historial-overlay-bg.abierto { display:block; }
         
-        .dt-buttons .dt-button { background: var(--surface) !important; color: var(--primary) !important; border: 1px solid var(--border-delicate) !important; font-family: 'Montserrat', sans-serif !important; font-weight: 800 !important; font-size: 0.65rem !important; border-radius: var(--radius-pill) !important; padding: 10px 24px !important; box-shadow: var(--shadow-card) !important; transition: all 0.3s; margin:0;}
-        .dt-buttons .dt-button:hover { background: var(--primary) !important; color: white !important;}
-
+        /* DATATABLES Y BOTONES ESTILO INICIO */
+        table.dataTable { border-collapse: separate !important; border-spacing: 0 10px !important; border: none !important; width: 100% !important; margin-top: 10px !important;}
+        table.dataTable thead th { background: transparent !important; color: var(--text-muted) !important; font-family: 'Montserrat', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 10px 15px !important; border: none !important; }
+        table.dataTable tbody tr { background-color: var(--surface); box-shadow: var(--shadow-card); border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border: 1px solid #E2E8F0; }
+        table.dataTable tbody td { padding: 15px 15px !important; border: none !important; vertical-align: middle; font-size: 0.9rem;}
+        table.dataTable tbody td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; border-left: 4px solid transparent; }
+        table.dataTable tbody td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+        table.dataTable tbody tr:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.05); }
+        table.dataTable tbody tr:hover td:first-child { border-left: 4px solid var(--primary); }
+        .dt-buttons .dt-button { background: var(--surface) !important; color: var(--primary) !important; border: 1px solid var(--border-delicate) !important; font-family: 'Montserrat', sans-serif !important; font-weight: 600 !important; font-size: 0.8rem !important; border-radius: var(--radius-pill) !important; padding: 10px 24px !important; box-shadow: var(--shadow-card) !important; margin-bottom: 20px !important; cursor: pointer; transition: all 0.3s ease; }
+        .dt-buttons .dt-button:hover { background: var(--primary) !important; color: white !important; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(10,25,49,0.15); }
+        .bg-validacion { background-color: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
     </style>
 </head>
 <body>
@@ -176,7 +185,10 @@
             <p style="margin:0; color:var(--text-muted); font-weight:600;">Jerarquía Activa: <span style="color:var(--primary); text-transform: uppercase;">{{ rol_usuario }}</span></p>
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
-            <div id="export-buttons-container"></div>
+            <button type="button" class="btn btn-primary" onclick="descargarExcelTickets()" style="display:inline-flex; align-items:center; gap:8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                EXPORTAR EXCEL
+            </button>
             <a href="{% url 'salir' %}" class="btn btn-danger-outline">Cerrar Sesión</a>
         </div>
     </div>
@@ -258,6 +270,35 @@
                 {% endfor %}
             </div>
         </div>
+    </div>
+
+    <!-- PANEL DE PRODUCTIVIDAD CON TABLA Y BOTÓN DE EXPORTACIÓN (ESTILO INICIO) -->
+    <div class="panel" style="overflow-x: auto; margin-top: 30px;">
+        <h2>PRODUCTIVIDAD</h2>
+        <table id="tabla-tickets" class="display" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Folio</th><th>Fecha</th><th>Área</th><th>Asunto</th><th>Estatus</th>
+                    <th>Director a Cargo</th><th>Sub / Coord</th>
+                    <th>Ciudadano</th><th>Colonia</th><th>Avance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket in todos_los_tickets %}
+                <tr class="fila-ticket tr-{{ ticket.status|slugify }}" onclick="iniciarLogica4D('{{ ticket.folio }}')">
+                    <td><strong style="color: var(--primary);">#{{ ticket.folio }}</strong></td>
+                    <td>{{ ticket.fecha|date:"d/m/Y" }}</td>
+                    <td><span style="background: #F1F5F9; padding: 6px 10px; border-radius: 8px; font-size: 0.8em; font-weight: 700; color: var(--primary-light);">{{ ticket.direccion.nombre_direccion|default:"N/A" }}</span></td>
+                    <td style="font-weight: 600; color: var(--text-title);">{{ ticket.asunto }}</td>
+                    <td><span class="badge {% if ticket.status == 'Nuevo' %}bg-nuevo{% elif ticket.status == 'En Proceso' %}bg-proceso{% elif ticket.status == 'En Validación' %}bg-validacion{% else %}bg-resuelto{% endif %}">{{ ticket.status }}</span></td>
+                    <td><span style="font-size: 0.85em; font-weight: 700; color: var(--text-muted);">{{ ticket.director_asignado.username|default:"-" }}</span></td>
+                    <td><span style="font-size: 0.85em; font-weight: 600; color: var(--text-muted);">{{ ticket.subdirector_asignado.username|default:"-" }} / {{ ticket.coordinador_asignado.username|default:"-" }}</span></td>
+                    <td>{{ ticket.nombre|default:"N/A" }}</td><td>{{ ticket.colonia.nombre_colonia|default:"N/A" }}</td>
+                    <td><strong style="color:var(--success);">{{ ticket.porcentaje_avance }}%</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <div id="modal-detalle" class="modal-overlay">
@@ -634,10 +675,12 @@
             let hasSubdirector = ticket.subdirector && ticket.subdirector !== 'Sin asignar';
             let hasCoordinador = ticket.coordinador && ticket.coordinador !== 'Sin asignar';
             let isResuelto = ticket.status === 'Resuelto';
+            let esAtencionDirecta = ticket.tareas.length > 0 && !hasSubdirector;
 
             let trackPercent = 0;
             if (hasSubdirector || ticket.tareas.length > 0) trackPercent = 50; 
-            if (hasCoordinador) trackPercent = 100;
+            if (hasCoordinador || esAtencionDirecta) trackPercent = 75;
+            if (ticket.status === 'En Validación') trackPercent = 90;
             if (isResuelto) trackPercent = 100; 
 
             let htmlContent = `
@@ -654,13 +697,13 @@
                     <div class="illus-node ${(hasSubdirector || ticket.tareas.length > 0) ? 'completed' : 'pending'}">
                         <div class="illus-figure-box">${figAsignacion}</div>
                         <div class="illus-label">Asignación</div>
-                        <div class="illus-sublabel">${hasSubdirector ? ticket.subdirector : 'Subdirección'}</div>
+                        <div class="illus-sublabel">${hasSubdirector ? ticket.subdirector : (ticket.tareas.length > 0 ? 'Atención Directa' : 'Subdirección')}</div>
                     </div>
 
-                    <div class="illus-node ${hasCoordinador ? 'completed' : 'pending'}">
+                    <div class="illus-node ${(hasCoordinador || (esAtencionDirecta && (isResuelto || ticket.status === 'En Validación' || ticket.tareas.some(t => t.completada)))) ? 'completed' : (esAtencionDirecta ? 'active' : 'pending')}">
                         <div class="illus-figure-box">${figCampo}</div>
-                        <div class="illus-label">Campo</div>
-                        <div class="illus-sublabel">${hasCoordinador ? ticket.coordinador : 'Coordinación'}</div>
+                        <div class="illus-label">${esAtencionDirecta ? 'Ejecución' : 'Campo'}</div>
+                        <div class="illus-sublabel">${hasCoordinador ? ticket.coordinador : (esAtencionDirecta ? (ticket.director !== 'Sin asignar' ? ticket.director : 'Dirección') : 'Coordinación')}</div>
                     </div>
 
                     <div class="illus-node ${isResuelto ? 'finalizado' : 'pending'}">
@@ -712,7 +755,7 @@
                         `;
                     }
                 } else {
-                    if ((ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador' || OMNIPOTENTE) && ticket.status !== 'Resuelto') {
+                    if ((ROL_ACTUAL === 'Director' || ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador' || OMNIPOTENTE) && ticket.status !== 'Resuelto') {
                         htmlContent += `
                             <form onsubmit="enviarFormularioAJAX(event, this)" style="border-top: 1px dashed var(--border-delicate); margin-top: 15px; padding-top: 15px;">
                                 <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
@@ -722,9 +765,9 @@
                                 
                                 <div style="display:flex; flex-direction:column; gap:10px;">
                                     <label style="font-size:0.75rem; font-weight:bold; color:var(--text-main); margin-top:15px; margin-bottom:5px;">Observaciones Operativas (Visibles en el diagrama):</label>
-                                    <input type="text" name="notas_agente" class="form-control" placeholder="Ej: Se instaló la pieza y se verificó." required style="padding:10px;">
+                                    <input type="text" name="notas_agente" class="form-control" placeholder="Ej: Se realizó la intervención técnica requerida." required style="padding:10px;">
                                     
-                                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-main); margin-top:15px; margin-bottom:5px;">Subir Evidencia Fotográfica (Opcional):</label>
+                                    <label style="font-size:0.75rem; font-weight:bold; color:var(--text-main); margin-top:15px; margin-bottom:5px;">Subir Evidencia Fotográfica / Documental (Opcional):</label>
                                     <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
                                 </div>
                                 <button type="submit" class="btn btn-success" style="padding:12px 20px; font-size:0.85rem; margin-top:15px; border-radius:50px; width:100%;">Finalizar Acción Táctica</button>
@@ -740,7 +783,35 @@
 
             let htmlExtras = "";
             if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.status === 'En Validación') {
-                htmlExtras += ``;
+                htmlExtras += `
+                    <div style="background: #EFF6FF; border: 1.5px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px; box-shadow: var(--shadow-card);">
+                        <h3 style="margin-top:0; color: #1D4ED8; display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.3rem;">✓</span> Validación Requerida por Dirección
+                        </h3>
+                        <p style="font-size: 0.85rem; color: #1E40AF; margin-bottom:15px;">
+                            Las acciones tácticas registradas han sido completadas. Como Director, puede dar el visto bueno y concluir definitivamente el caso al 100%, o devolverlo con observaciones para corrección.
+                        </p>
+                        
+                        <form onsubmit="enviarFormularioAJAX(event, this)">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" id="action_val_${ticket.folio}" value="aprobar_ticket">
+                            
+                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Observaciones de Cierre o Devolución:</label>
+                                <input type="text" name="notas_agente" class="form-control" placeholder="Ej: Caso concluido y verificado satisfactoriamente." style="padding:10px;">
+                                
+                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Evidencia Complementaria (Opcional):</label>
+                                <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                            </div>
+
+                            <div style="display:flex; gap:15px;">
+                                <button type="submit" onclick="document.getElementById('action_val_${ticket.folio}').value='aprobar_ticket'" class="btn btn-success" style="flex:1.2; padding: 14px; border-radius: 50px; font-weight:800; cursor:pointer;">Aprobar y Concluir (100%)</button>
+                                <button type="submit" onclick="document.getElementById('action_val_${ticket.folio}').value='rechazar_ticket'" class="btn btn-danger-outline" style="flex:1; padding: 14px; border-radius: 50px; font-weight:800; background:white; cursor:pointer;">Devolver Trámite</button>
+                            </div>
+                        </form>
+                    </div>
+                `;
             }
 
             if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.tareas.length === 0 && ticket.status !== 'Resuelto') {
@@ -763,7 +834,7 @@
                 htmlExtras += `
                     <div style="background: white; border: 1px dashed var(--primary); padding: 25px; border-radius: 12px; margin-top:10px;">
                         <h3 style="margin-top:0; color:var(--primary);">Plan de Arranque</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Agregue las tareas iniciales y asigne una subdirección para activar el flujo.</p>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Agregue las tareas iniciales. Puede asignarlas a una subdirección o dejarlas sin turnar para atención personal de la Dirección.</p>
                         
                         ${bloqueIA}
                         
@@ -777,19 +848,20 @@
                                 <button type="button" class="btn btn-primary" onclick="agregarFilaTarea()">+</button>
                             </div>
                             <ul id="lista_visual_tareas" style="padding-left:20px; font-size:0.9rem; margin-bottom:20px; color:var(--primary);"></ul>
-                            <select name="subdirector_id" class="form-control" style="margin-top:5px;" required>
-                                <option value="">-- REENVÍO Y ASIGNACIÓN --</option>
+                            <label style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); margin-bottom:4px;">Asignación Operativa (Opcional):</label>
+                            <select name="subdirector_id" class="form-control" style="margin-top:2px;">
+                                <option value="">-- Atender personalmente (Sin turnar) --</option>
                                 {% for emp in empleados_inferiores %}
-                                    <option value="{{ emp.id }}">{{ emp.username }}</option>
+                                    <option value="{{ emp.id }}">Turnar a: {{ emp.username }}</option>
                                 {% endfor %}
                             </select>
-                            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:20px;" onclick="prepararEnvioDirector()">Iniciar Ruta Operativa</button>
+                            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:20px;" onclick="prepararEnvioDirector()">Iniciar Ruta Operativa / Atender</button>
                         </form>
                     </div>
                 `;
             }
 
-            if ((ROL_ACTUAL === 'Subdirector' || OMNIPOTENTE || (ROL_ACTUAL === 'Coordinador' && ES_ESPECIAL)) && ticket.status !== 'Resuelto') {
+            if ((ROL_ACTUAL === 'Director' || ROL_ACTUAL === 'Subdirector' || OMNIPOTENTE || (ROL_ACTUAL === 'Coordinador' && ES_ESPECIAL)) && ticket.status !== 'Resuelto') {
                 htmlExtras += `
                     <div style="background: #F8FAFC; padding: 25px; border-radius: 12px; margin-top: 15px; border: 1px dashed var(--primary);">
                         <b style="color: var(--primary); font-size: 0.9rem; text-transform: uppercase;">+ Añadir Nodo de Acción Adicional</b>
@@ -799,6 +871,29 @@
                             <input type="hidden" name="action_4d" value="director_plan">
                             <input type="text" name="tareas_list" class="form-control" placeholder="Ej. Mandar maquinaria pesada..." required>
                             <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Añadir</button>
+                        </form>
+                    </div>
+                `;
+            }
+
+            if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.status !== 'Resuelto' && !hasSubdirector && ticket.tareas.length > 0) {
+                htmlExtras += `
+                    <div style="background: white; padding: 25px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border-delicate); box-shadow: var(--shadow-card);">
+                        <h4 style="margin-top:0; color:var(--warning); font-size: 1.1rem;">Turnar a Subdirección (Opcional)</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top:-5px; margin-bottom:15px;">Si lo requiere, puede delegar la supervisión operativa a una Subdirección en cualquier momento.</p>
+                        <form onsubmit="enviarFormularioAJAX(event, this)">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" value="director_plan">
+                            <div style="display:flex; gap:10px; margin-top:10px;">
+                                <select name="subdirector_id" class="form-control" style="padding:12px; font-size:0.9rem;" required>
+                                    <option value="">-- Seleccionar Subdirección --</option>
+                                    {% for emp in empleados_inferiores %}
+                                        <option value="{{ emp.id }}">{{ emp.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-warning" style="padding:12px 25px; font-size:0.9rem;">Turnar</button>
+                            </div>
                         </form>
                     </div>
                 `;
@@ -826,11 +921,11 @@
                 `;
             }
 
-            if (OMNIPOTENTE && ticket.status !== 'Resuelto') {
+            if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.status !== 'Resuelto') {
                 htmlExtras += `
                     <div style="background: #FFF7ED; padding: 25px; border-radius: 12px; margin-top: 20px; border: 1px dashed var(--warning);">
                         <b style="color: var(--warning); font-size: 0.9rem; text-transform: uppercase;">⚡ Ejecución Express</b>
-                        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:15px; margin-top:5px;">Crear la acción, responder y cerrar en un solo paso.</p>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:15px; margin-top:5px;">Crear la acción, responder y cerrar en un solo paso sin necesidad de turnar.</p>
                         <form onsubmit="enviarFormularioAJAX(event, this)">
                             <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
                             <input type="hidden" name="folio_ticket" value="${ticket.folio}">
@@ -896,58 +991,50 @@
             let ul = document.getElementById('lista_visual_tareas'); ul.innerHTML = "";
             tareasArray.forEach(t => { ul.innerHTML += `<li style="margin-bottom:5px;">✓ ${t}</li>`; });
         }
-        function prepararEnvioDirector() { document.getElementById('tareas_list_input').value = tareasArray.join('|'); tareasArray = [];}
+        function prepararEnvioDirector() { 
+            let input = document.getElementById('nueva_tarea_input');
+            if(input && input.value.trim()) {
+                tareasArray.push(input.value.trim());
+                input.value = "";
+            }
+            document.getElementById('tareas_list_input').value = tareasArray.join('|'); 
+            tareasArray = [];
+        }
 
         function cerrarModal() { document.getElementById('modal-detalle').style.display = 'none'; tareasArray = []; }
         window.onclick = function(e) { if (e.target.classList.contains('modal-overlay')) cerrarModal(); }
     </script>
-    
-    <div style="display:none;">
-        <table id="tabla-export" class="display" style="width: 100%;">
-            <thead>
-                <tr>
-                    <th>Folio</th><th>Fecha</th><th>Área</th><th>Asunto</th><th>Estatus</th>
-                    <th>Director a Cargo</th><th>Sub / Coord</th>
-                    <th>Ciudadano</th><th>Colonia</th><th>Avance</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ticket in todos_los_tickets %}
-                <tr>
-                    <td>#{{ ticket.folio }}</td>
-                    <td>{{ ticket.fecha|date:"d/m/Y" }}</td>
-                    <td>{{ ticket.direccion.nombre_direccion|default:"N/A" }}</td>
-                    <td>{{ ticket.asunto }}</td>
-                    <td>{{ ticket.status }}</td>
-                    <td>{{ ticket.director_asignado.username|default:"-" }}</td>
-                    <td>{{ ticket.subdirector_asignado.username|default:"-" }} / {{ ticket.coordinador_asignado.username|default:"-" }}</td>
-                    <td>{{ ticket.nombre|default:"N/A" }}</td>
-                    <td>{{ ticket.colonia.nombre_colonia|default:"N/A" }}</td>
-                    <td>{{ ticket.porcentaje_avance }}%</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
+    <!-- TABLA Y BOTÓN DATATABLES EXPORT -->
     <script>
+        var tablaAgenteDT = null;
         $(document).ready(function() {
-            var tablaE = $('#tabla-export').DataTable({
+            tablaAgenteDT = $('#tabla-tickets').DataTable({
                 dom: 'Bfrtip',
                 buttons: [
                     { 
                         extend: 'excelHtml5', 
-                        text: '📄 EXPORTAR EN EXCEL/CSV', 
+                        text: 'EXPORTACIONES EN CVC O SIMILAR', 
                         title: 'Reporte_General_Tickets',
-                        className: 'btn btn-primary',
-                        style: 'background: var(--primary); color: white; padding: 10px 15px; border-radius: 10px; font-weight: bold; border: none; font-size: 0.8rem; height: 100%;' // Override the dt classes
+                        exportOptions: {
+                            modifier: {
+                                page: 'all',
+                                search: 'applied'
+                            }
+                        }
                     }
                 ],
                 language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                 pageLength: 10
             });
-            tablaE.buttons().container().appendTo('#export-buttons-container');
         });
+
+        function descargarExcelTickets() {
+            if (tablaAgenteDT) {
+                tablaAgenteDT.button('.buttons-excel').trigger();
+            } else {
+                $('#tabla-tickets').DataTable().button('.buttons-excel').trigger();
+            }
+        }
     </script>
 
     <form style="display:none;" id="form-token-global">{% csrf_token %}</form>
