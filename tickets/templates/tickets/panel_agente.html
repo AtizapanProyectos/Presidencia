@@ -280,7 +280,9 @@
                 <tr>
                     <th>Folio</th><th>Fecha</th><th>Área</th><th>Asunto</th><th>Estatus</th>
                     <th>Director a Cargo</th><th>Sub / Coord</th>
-                    <th>Ciudadano</th><th>Colonia</th><th>Avance</th>
+                    <th>Ciudadano</th><th>Teléfono</th><th>Correo</th>
+                    <th>Dirección Ciudadano</th><th>Dirección Petición</th>
+                    <th>Colonia</th><th>Avance</th>
                 </tr>
             </thead>
             <tbody>
@@ -293,7 +295,12 @@
                     <td><span class="badge {% if ticket.status == 'Nuevo' %}bg-nuevo{% elif ticket.status == 'En Proceso' %}bg-proceso{% elif ticket.status == 'En Validación' %}bg-validacion{% else %}bg-resuelto{% endif %}">{{ ticket.status }}</span></td>
                     <td><span style="font-size: 0.85em; font-weight: 700; color: var(--text-muted);">{{ ticket.director_asignado.username|default:"-" }}</span></td>
                     <td><span style="font-size: 0.85em; font-weight: 600; color: var(--text-muted);">{{ ticket.subdirector_asignado.username|default:"-" }} / {{ ticket.coordinador_asignado.username|default:"-" }}</span></td>
-                    <td>{{ ticket.nombre|default:"N/A" }}</td><td>{{ ticket.colonia.nombre_colonia|default:"N/A" }}</td>
+                    <td>{{ ticket.nombre_completo|default:ticket.nombre|default:"N/A" }}</td>
+                    <td>{{ ticket.telefono|default:"-" }}</td>
+                    <td>{{ ticket.email|default:"-" }}</td>
+                    <td>{{ ticket.calle_ciudadano|default:"" }}{% if ticket.numero_exterior_ciudadano %} Ext. {{ ticket.numero_exterior_ciudadano }}{% endif %}{% if ticket.numero_interior_ciudadano %} Int. {{ ticket.numero_interior_ciudadano }}{% endif %}{% if ticket.colonia_ciudadano %}, {{ ticket.colonia_ciudadano.nombre_colonia }}{% endif %}</td>
+                    <td>{{ ticket.calle|default:"" }}{% if ticket.numero_exterior %} Ext. {{ ticket.numero_exterior }}{% endif %}{% if ticket.numero_interior %} Int. {{ ticket.numero_interior }}{% endif %}{% if ticket.colonia %}, {{ ticket.colonia.nombre_colonia }}{% endif %}</td>
+                    <td>{{ ticket.colonia.nombre_colonia|default:"N/A" }}</td>
                     <td><strong style="color:var(--success);">{{ ticket.porcentaje_avance }}%</strong></td>
                 </tr>
                 {% endfor %}
