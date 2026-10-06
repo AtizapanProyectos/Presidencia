@@ -463,7 +463,7 @@
 
 
         var mapGen = L.map('mapa-general').setView([19.5542, -99.2458], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapGen);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom: 16, maxZoom: 19, attribution: 'Tiles &copy; Esri'}).addTo(mapGen);
         
         // Pinta el GeoJSON en el mapa principal de la consola
         cargarGeoJSON(mapGen);
@@ -968,7 +968,7 @@
                     setTimeout(() => {
                         if (!mapDet) {
                             mapDet = L.map('mapa-detalle').setView([lat, lng], 16);
-                            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDet);
+                            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom: 16, maxZoom: 19, attribution: 'Tiles &copy; Esri'}).addTo(mapDet);
                             
                             cargarGeoJSON(mapDet);
                             

@@ -408,7 +408,7 @@
         // INICIALIZACIÓN DE MAPA PRINCIPAL
         // ==========================================
         var mapPrincipal = L.map('mapa').setView([19.5542, -99.2458], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapPrincipal);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom: 16, maxZoom: 19}).addTo(mapPrincipal);
         var capaMarcadores = L.layerGroup().addTo(mapPrincipal);
 
         // ==========================================
@@ -793,7 +793,7 @@ var divC = document.getElementById('contenedor-mapa');
         setTimeout(() => {
             if (!mapDetalle) {
                 mapDetalle = L.map('mapa-detalle').setView([lat, lng], 16);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapDetalle);
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom: 16, maxZoom: 19}).addTo(mapDetalle);
                 if(typeof cargarGeoJSON === "function") cargarGeoJSON(mapDetalle);
                 
                 // Hacemos el pin arrastrable para edición
