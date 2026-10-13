@@ -269,7 +269,7 @@
 
                         <div id="bloque-misma-direccion" style="grid-column: span 2; display: none; background: #ECFDF5; border: 1px dashed #10B981; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
                             <b style="color: var(--success);">✓ La afectación se registrará en la dirección del ciudadano</b>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0;">No necesitas mover el mapa: se tomarán la colonia, la calle y los números que capturaste en el Paso 1.</p>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0;">Se tomarán la colonia, la calle y los números del Paso 1. Si quieres afinar la ubicación exacta, puedes mover el pin del mapa.</p>
                         </div>
 
                         <div id="bloque-otra-direccion" style="display: none; grid-column: span 2;">
@@ -371,7 +371,6 @@
             const opOtra = document.getElementById('op-otra');
             const bloqueMisma = document.getElementById('bloque-misma-direccion');
             const bloqueOtra = document.getElementById('bloque-otra-direccion');
-            const panelMapa = document.getElementById('panel-mapa-afectacion');
 
             function aplicarMismaDireccion() {
                 const colC = document.querySelector('select[name="colonia_ciudadano"]');
@@ -406,9 +405,10 @@
                 if (opMisma) opMisma.classList.toggle('seleccionada', misma);
                 if (opOtra) opOtra.classList.toggle('seleccionada', !misma);
 
+                // El mapa SIEMPRE visible: si es la misma dirección solo se informa,
+                // pero el usuario puede seguir moviendo el pin para refinar la ubicación.
                 if (bloqueMisma) bloqueMisma.style.display = misma ? 'block' : 'none';
                 if (bloqueOtra) bloqueOtra.style.display = misma ? 'none' : 'grid';
-                if (panelMapa) panelMapa.style.display = misma ? 'none' : 'block';
 
                 if (misma) aplicarMismaDireccion();
             }
