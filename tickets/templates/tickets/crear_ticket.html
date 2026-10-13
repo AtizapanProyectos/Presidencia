@@ -178,6 +178,12 @@
         .wizard-nav { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; }
         .wizard-nav .btn { min-width: 150px; justify-content: center; }
 
+        /* Selector "misma dirección / otra dirección" */
+        .opciones-ubicacion { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+        .opcion-ubicacion { flex: 1; min-width: 230px; display: flex; align-items: center; gap: 10px; background: #fff; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 12px 14px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-main); transition: all 0.2s ease; }
+        .opcion-ubicacion input { width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0; }
+        .opcion-ubicacion.seleccionada { border-color: var(--primary); background: #EFF6FF; box-shadow: 0 0 0 3px rgba(10, 25, 49, 0.08); }
+
     </style>
 </head>
 <body>
@@ -214,43 +220,43 @@
                         <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
                         <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
 
-                        <div style="grid-column: span 2; background: rgba(241, 245, 249, 0.7); padding: 14px; border-radius: 12px; border: 1px solid #CBD5E1; margin-top: 6px;">
-                            <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--primary); cursor: pointer; font-size: 0.9rem; text-transform: none; letter-spacing: 0;">
-                                <input type="checkbox" id="chk_otra_direccion" style="width: 18px; height: 18px; accent-color: var(--primary);">
-                                ¿El ciudadano vive en otra dirección distinta a la afectación?
-                            </label>
+                        <h4 class="paso-titulo" style="border-bottom-color: #F59E0B;">Dirección del Ciudadano</h4>
+
+                        <div style="grid-column: span 2; margin-bottom: 10px;">
+                            <div id="buscador-ciudadano"></div>
                         </div>
 
-                        <div id="bloque-direccion-ciudadano" style="display: none; grid-column: span 2;">
-                            <h4 style="color: var(--primary); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Dirección del Ciudadano</h4>
-
-                            <div style="margin-top: 12px;">
-                                <div id="buscador-ciudadano"></div>
+                        <div style="grid-column: span 2; margin-bottom: 10px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
+                            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                                ¿Tienes un Link de Google Maps del ciudadano? (Opcional):
+                            </label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="link_maps_ciudadano" placeholder="Pega aquí el enlace de Maps del ciudadano..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
+                                <button type="button" id="btn_procesar_link_ciudadano" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
+                                    Extraer Dirección
+                                </button>
                             </div>
+                            <div id="msg_link_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
+                            <div id="msg_groq_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+                        </div>
+                        
+                        <p>{{ formulario.colonia_ciudadano.label_tag }} {{ formulario.colonia_ciudadano }}</p>
+                        <p>{{ formulario.calle_ciudadano.label_tag }} {{ formulario.calle_ciudadano }}</p>
+                        <p>{{ formulario.numero_exterior_ciudadano.label_tag }} {{ formulario.numero_exterior_ciudadano }}</p>
+                        <p>{{ formulario.numero_interior_ciudadano.label_tag }} {{ formulario.numero_interior_ciudadano }}</p>
 
-                            <div style="margin-bottom: 10px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
-                                <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
-                                    ¿Tienes un Link de Google Maps del ciudadano? (Opcional):
+                        <div style="grid-column: span 2; background: #FFFBEB; padding: 15px; border-radius: 12px; border: 1px dashed #F59E0B; margin-top: 10px;">
+                            <label style="display: block; font-weight: 800; color: #b45309; font-size: 0.9rem; margin-bottom: 2px;">
+                                ¿La afectación a reportar está en esta misma dirección?
+                            </label>
+                            <div class="opciones-ubicacion">
+                                <label class="opcion-ubicacion seleccionada" id="op-misma">
+                                    <input type="radio" name="misma_dir" value="si" checked>
+                                    <span><b>SÍ</b> · Es la misma dirección del ciudadano</span>
                                 </label>
-                                <div style="display: flex; gap: 10px;">
-                                    <input type="text" id="link_maps_ciudadano" placeholder="Pega aquí el enlace de Maps del ciudadano..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
-                                    <button type="button" id="btn_procesar_link_ciudadano" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
-                                        Extraer Dirección
-                                    </button>
-                                </div>
-                                <div id="msg_link_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
-                                <div id="msg_groq_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
-                            </div>
-                            
-                            <p>{{ formulario.colonia_ciudadano.label_tag }} {{ formulario.colonia_ciudadano }}</p>
-                            <p>{{ formulario.calle_ciudadano.label_tag }} {{ formulario.calle_ciudadano }}</p>
-                            <p>{{ formulario.numero_exterior_ciudadano.label_tag }} {{ formulario.numero_exterior_ciudadano }}</p>
-                            <p>{{ formulario.numero_interior_ciudadano.label_tag }} {{ formulario.numero_interior_ciudadano }}</p>
-
-                            <div style="grid-column: span 2; background: #FFFBEB; padding: 15px; border-radius: 12px; border: 1px dashed #F59E0B; margin-top: 10px; margin-bottom: 10px;">
-                                <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #b45309; cursor: pointer; font-size: 0.9rem;">
-                                    <input type="checkbox" id="chk_misma_direccion" style="width: 18px; height: 18px; accent-color: #D97706;">
-                                    La afectación a reportar es en esta misma dirección (Copiar al mapa táctico)
+                                <label class="opcion-ubicacion" id="op-otra">
+                                    <input type="radio" name="misma_dir" value="no">
+                                    <span><b>NO</b> · Es otra dirección (la capturo en el siguiente paso)</span>
                                 </label>
                             </div>
                         </div>
@@ -261,23 +267,30 @@
                         <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
                         <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
 
-                        <div style="grid-column: span 2; margin-top: 10px; margin-bottom: 10px;">
-                            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación de la afectación (Mueve el mapa o busca): </label>
-                            <div id="buscador-afectacion"></div>
+                        <div id="bloque-misma-direccion" style="grid-column: span 2; display: none; background: #ECFDF5; border: 1px dashed #10B981; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <b style="color: var(--success);">✓ La afectación se registrará en la dirección del ciudadano</b>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0;">No necesitas mover el mapa: se tomarán la colonia, la calle y los números que capturaste en el Paso 1.</p>
                         </div>
 
-                        <div style="grid-column: span 2; margin-bottom: 15px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
-                            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
-                                ¿Tienes un Link de Google Maps? (Opcional):
-                            </label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" id="link_maps" placeholder="Pega aquí el enlace de Maps..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
-                                <button type="button" id="btn_procesar_link" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
-                                    Extraer Texto y Ubicación
-                                </button>
+                        <div id="bloque-otra-direccion" style="display: none; grid-column: span 2;">
+                            <div style="margin-top: 10px; margin-bottom: 10px;">
+                                <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación de la afectación (Mueve el mapa o busca): </label>
+                                <div id="buscador-afectacion"></div>
                             </div>
-                            <div id="msg_link" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
-                            <div id="msg_groq_afectacion" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+
+                            <div style="margin-bottom: 15px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
+                                <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                                    ¿Tienes un Link de Google Maps? (Opcional):
+                                </label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="link_maps" placeholder="Pega aquí el enlace de Maps..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
+                                    <button type="button" id="btn_procesar_link" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
+                                        Extraer Texto y Ubicación
+                                    </button>
+                                </div>
+                                <div id="msg_link" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
+                                <div id="msg_groq_afectacion" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -329,7 +342,7 @@
             </form>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="panel-mapa-afectacion">
             <h3>Levantamiento Geográfico Inteligente</h3>
             <div id="mapa"></div>
         </div>  
@@ -350,39 +363,58 @@
                 if (campo) campo.removeAttribute('required');
             });
 
-            const chkMismaDireccion = document.getElementById('chk_misma_direccion');
-            if(chkMismaDireccion) {
-                chkMismaDireccion.addEventListener('change', function() {
-                    const colC = document.querySelector('select[name="colonia_ciudadano"]');
-                    const calC = document.querySelector('input[name="calle_ciudadano"]');
-                    const extC = document.querySelector('input[name="numero_exterior_ciudadano"]');
-                    const intC = document.querySelector('input[name="numero_interior_ciudadano"]');
+            // ============================================================================
+            // ¿LA AFECTACIÓN ESTÁ EN LA MISMA DIRECCIÓN DEL CIUDADANO O EN OTRA?
+            // ============================================================================
+            const radiosMismaDir = document.querySelectorAll('input[name="misma_dir"]');
+            const opMisma = document.getElementById('op-misma');
+            const opOtra = document.getElementById('op-otra');
+            const bloqueMisma = document.getElementById('bloque-misma-direccion');
+            const bloqueOtra = document.getElementById('bloque-otra-direccion');
+            const panelMapa = document.getElementById('panel-mapa-afectacion');
 
-                    const colP = document.querySelector('select[name="colonia"]');
-                    const calP = document.querySelector('input[name="calle"]');
-                    const extP = document.querySelector('input[name="numero_exterior"]');
-                    const intP = document.querySelector('input[name="numero_interior"]');
+            function aplicarMismaDireccion() {
+                const colC = document.querySelector('select[name="colonia_ciudadano"]');
+                const calC = document.querySelector('input[name="calle_ciudadano"]');
+                const extC = document.querySelector('input[name="numero_exterior_ciudadano"]');
+                const intC = document.querySelector('input[name="numero_interior_ciudadano"]');
 
-                    if (this.checked) {
-                        if(calC) calP.value = calC.value;
-                        if(extC) extP.value = extC.value;
-                        if(intC) intP.value = intC.value;
-                        
-                        if(colC && colC.selectedIndex > 0) { colP.value = colC.value; }
+                const colP = document.querySelector('select[name="colonia"]');
+                const calP = document.querySelector('input[name="calle"]');
+                const extP = document.querySelector('input[name="numero_exterior"]');
+                const intP = document.querySelector('input[name="numero_interior"]');
 
-                        if (coordsCiudadanoTemp) {
-                            marcador.setLatLng([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng]);
-                            map.flyTo([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng], 18, { duration: 1.5 });
-                            actualizarInputs(coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng);
-                        } else if (colC && colC.selectedIndex > 0) {
-                            if (typeof volarAColonia === "function") volarAColonia();
-                        }
-                        this.parentElement.style.color = 'var(--success)';
-                    } else {
-                        this.parentElement.style.color = '#b45309';
-                    }
-                });
+                if(calC) calP.value = calC.value;
+                if(extC) extP.value = extC.value;
+                if(intC) intP.value = intC.value;
+                
+                if(colC && colC.selectedIndex > 0) { colP.value = colC.value; }
+
+                if (coordsCiudadanoTemp) {
+                    marcador.setLatLng([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng]);
+                    map.flyTo([coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng], 18, { duration: 1.5 });
+                    actualizarInputs(coordsCiudadanoTemp.lat, coordsCiudadanoTemp.lng);
+                } else if (colC && colC.selectedIndex > 0) {
+                    if (typeof volarAColonia === "function") volarAColonia();
+                }
             }
+
+            function actualizarEstadoDireccion() {
+                const esMisma = document.querySelector('input[name="misma_dir"]:checked');
+                const misma = esMisma && esMisma.value === 'si';
+
+                if (opMisma) opMisma.classList.toggle('seleccionada', misma);
+                if (opOtra) opOtra.classList.toggle('seleccionada', !misma);
+
+                if (bloqueMisma) bloqueMisma.style.display = misma ? 'block' : 'none';
+                if (bloqueOtra) bloqueOtra.style.display = misma ? 'none' : 'grid';
+                if (panelMapa) panelMapa.style.display = misma ? 'none' : 'block';
+
+                if (misma) aplicarMismaDireccion();
+            }
+
+            radiosMismaDir.forEach(radio => radio.addEventListener('change', actualizarEstadoDireccion));
+            actualizarEstadoDireccion();
         });
 
         function aplicarIAOrtografica(campo) {
@@ -1019,7 +1051,12 @@ Elige la colonia del catálogo que sea más parecida o cercana geográficamente 
                         return false;
                     }
                     if (!valor('colonia')) {
-                        alert('Selecciona la ubicación de la afectación en el mapa (búscala o mueve el pin) para asignar la colonia.');
+                        const radioMisma = document.querySelector('input[name="misma_dir"]:checked');
+                        if (radioMisma && radioMisma.value === 'si') {
+                            alert('Selecciona la colonia del ciudadano en el Paso 1: la afectación usará esa misma dirección.');
+                        } else {
+                            alert('Selecciona la ubicación de la afectación en el mapa (búscala o mueve el pin) para asignar la colonia.');
+                        }
                         return false;
                     }
                 }
@@ -1029,14 +1066,19 @@ Elige la colonia del catálogo que sea más parecida o cercana geográficamente 
             function construirResumen() {
                 const apoyoSelect = document.querySelector('select[name="direcciones_apoyo"]');
                 const apoyo = apoyoSelect ? Array.from(apoyoSelect.selectedOptions).map(o => o.text).join(', ') : '';
+                const radioMisma = document.querySelector('input[name="misma_dir"]:checked');
+                const mismaTxt = (radioMisma && radioMisma.value === 'si') ? 'SÍ · Misma dirección del ciudadano' : 'NO · Otra dirección';
+                const dirCiudadano = [valor('calle_ciudadano'), valor('numero_exterior_ciudadano') ? 'No. ' + valor('numero_exterior_ciudadano') : '', textoSelect('colonia_ciudadano')].filter(Boolean).join(', ');
                 const filas = [
                     ['Ciudadano', [valor('nombre'), valor('apellido_paterno'), valor('apellido_materno')].filter(Boolean).join(' ') || '—'],
                     ['Teléfono', valor('telefono') || '—'],
                     ['Correo', valor('email') || '—'],
+                    ['Dirección del ciudadano', dirCiudadano || '—'],
                     ['Asunto', valor('asunto') || '—'],
                     ['Notas', valor('notas') || '—'],
+                    ['¿Misma dirección?', mismaTxt],
                     ['Colonia de la afectación', textoSelect('colonia') || '—'],
-                    ['Calle', [valor('calle'), valor('numero_exterior') ? 'No. ' + valor('numero_exterior') : '', valor('numero_interior') ? 'Int. ' + valor('numero_interior') : ''].filter(Boolean).join(' ') || '—'],
+                    ['Calle de la afectación', [valor('calle'), valor('numero_exterior') ? 'No. ' + valor('numero_exterior') : '', valor('numero_interior') ? 'Int. ' + valor('numero_interior') : ''].filter(Boolean).join(' ') || '—'],
                     ['Coordenadas', (valor('latitud') && valor('longitud')) ? valor('latitud') + ', ' + valor('longitud') : '—'],
                     ['Dirección principal', textoSelect('direccion') || '—'],
                     ['Direcciones de apoyo', apoyo || 'Ninguna'],
@@ -1054,19 +1096,6 @@ Elige la colonia del catálogo que sea más parecida o cercana geográficamente 
                 if (pasoActual < 4) irAPaso(pasoActual + 1);
             });
             if (btnAtras) btnAtras.addEventListener('click', () => { if (pasoActual > 1) irAPaso(pasoActual - 1); });
-
-            // Toggle: ¿el ciudadano vive en otra dirección? (bloque opcional)
-            const chkOtra = document.getElementById('chk_otra_direccion');
-            const bloqueCiu = document.getElementById('bloque-direccion-ciudadano');
-            if (chkOtra && bloqueCiu) {
-                chkOtra.addEventListener('change', function() {
-                    bloqueCiu.style.display = this.checked ? 'grid' : 'none';
-                    if (!this.checked) {
-                        const chkMisma = document.getElementById('chk_misma_direccion');
-                        if (chkMisma) chkMisma.checked = false;
-                    }
-                });
-            }
 
             // Al enviar: se quita "required" de todos los controles para que el navegador
             // no bloquee el submit por campos de pasos ya validados. Django valifica en
