@@ -138,11 +138,7 @@
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
         .django-form p:has(input[name="latitud"]),
-        .django-form p:has(input[name="longitud"]),
-        .django-form p:has(input[name="calle"]),
-        .django-form p:has(input[name="numero_interior"]),
-        .django-form p:has(input[name="numero_exterior"]),
-        .django-form p:has(select[name="colonia"]) {
+        .django-form p:has(input[name="longitud"]) {
             display: none !important;
         }
 
@@ -291,6 +287,12 @@
                                 <div id="msg_link" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
                                 <div id="msg_groq_afectacion" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
                             </div>
+
+                            <p style="grid-column: span 2; font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin: 0;">…o captura la dirección de la afectación manualmente (al elegir la colonia el mapa vuela a la zona):</p>
+                            <p>{{ formulario.colonia.label_tag }} {{ formulario.colonia }}</p>
+                            <p>{{ formulario.calle.label_tag }} {{ formulario.calle }}</p>
+                            <p>{{ formulario.numero_exterior.label_tag }} {{ formulario.numero_exterior }}</p>
+                            <p>{{ formulario.numero_interior.label_tag }} {{ formulario.numero_interior }}</p>
                         </div>
                     </div>
 
@@ -314,10 +316,6 @@
                         <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
 
                         <div style="display: none;">
-                            {{ formulario.colonia }}
-                            {{ formulario.calle }}
-                            {{ formulario.numero_exterior }}
-                            {{ formulario.numero_interior }}
                             {{ formulario.latitud }}
                             {{ formulario.longitud }}
                         </div>
@@ -410,8 +408,24 @@
                 if (bloqueMisma) bloqueMisma.style.display = misma ? 'block' : 'none';
                 if (bloqueOtra) bloqueOtra.style.display = misma ? 'none' : 'grid';
 
-                if (misma) aplicarMismaDireccion();
+                if (misma) {
+                    aplicarMismaDireccion();
+                } else if (typeof window.crearBuscadorAfectacion === 'function') {
+                    // Recién ahora (bloque visible) se crea el buscador de Google
+                    window.crearBuscadorAfectacion();
+                }
             }
+
+            // Si elige "misma dirección" y luego edita la del ciudadano, se recopia solo
+            ['colonia_ciudadano', 'calle_ciudadano', 'numero_exterior_ciudadano', 'numero_interior_ciudadano'].forEach(nombre => {
+                const campo = document.querySelector(`[name="${nombre}"]`);
+                if (!campo) return;
+                const evento = campo.tagName === 'SELECT' ? 'change' : 'input';
+                campo.addEventListener(evento, () => {
+                    const radio = document.querySelector('input[name="misma_dir"]:checked');
+                    if (radio && radio.value === 'si') aplicarMismaDireccion();
+                });
+            });
 
             radiosMismaDir.forEach(radio => radio.addEventListener('change', actualizarEstadoDireccion));
             actualizarEstadoDireccion();
@@ -763,19 +777,34 @@ Elige la colonia del catálogo que sea más parecida o cercana geográficamente 
                 } catch (err) { console.error(err); }
             });
 
-            const autoAfectacion = new google.maps.places.PlaceAutocompleteElement({ componentRestrictions: { country: 'mx' } });
-            document.getElementById('buscador-afectacion').appendChild(autoAfectacion);
-            autoAfectacion.addEventListener('gmp-select', async (e) => {
-                if (!e.placePrediction) return;
-                const place = e.placePrediction.toPlace();
-                try {
-                    await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
-                    const latGoogle = place.location.lat(); const lngGoogle = place.location.lng();
-                    marcador.setLatLng([latGoogle, lngGoogle]); map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
-                    actualizarInputs(latGoogle, lngGoogle);
-                    procesarLugarGoogle(place, false);
-                } catch (err) { console.error(err); }
-            });
+            // 🔧 El buscador de la afectación se crea BAJO DEMANDA: si se crea mientras su
+            // contenedor está oculto (display:none), el widget de Google no funciona y el
+            // mapa no se mueve. Por eso solo se inicializa cuando el bloque es visible.
+            let buscadorAfectacionListo = false;
+            window.crearBuscadorAfectacion = function() {
+                const contenedor = document.getElementById('buscador-afectacion');
+                if (buscadorAfectacionListo || !contenedor) return;
+                if (contenedor.offsetParent === null) return; // sigue oculto: se creará al mostrarse
+                buscadorAfectacionListo = true;
+
+                const autoAfectacion = new google.maps.places.PlaceAutocompleteElement({ componentRestrictions: { country: 'mx' } });
+                contenedor.appendChild(autoAfectacion);
+                autoAfectacion.addEventListener('gmp-select', async (e) => {
+                    if (!e.placePrediction) return;
+                    const place = e.placePrediction.toPlace();
+                    try {
+                        await place.fetchFields({ fields: ['displayName', 'location', 'addressComponents'] });
+                        const latGoogle = place.location.lat(); const lngGoogle = place.location.lng();
+                        marcador.setLatLng([latGoogle, lngGoogle]); map.flyTo([latGoogle, lngGoogle], 18, { duration: 1.5 });
+                        actualizarInputs(latGoogle, lngGoogle);
+                        procesarLugarGoogle(place, false);
+                    } catch (err) { console.error(err); }
+                });
+            };
+
+            // Si Google carga cuando ya está elegido "otra dirección", créalo de inmediato
+            const radioActual = document.querySelector('input[name="misma_dir"]:checked');
+            if (radioActual && radioActual.value === 'no') window.crearBuscadorAfectacion();
 
             // ============================================================
             // 📍 LINK DE MAPS — AFECTACIÓN (mueve el mapa y el pin)
@@ -1025,6 +1054,12 @@ Elige la colonia del catálogo que sea más parecida o cercana geográficamente 
                 btnSiguiente.style.display = n === 4 ? 'none' : 'inline-flex';
                 btnEnviar.style.display = n === 4 ? 'inline-flex' : 'none';
                 if (n === 4) construirResumen();
+                // Al entrar al Paso 2 con "otra dirección" elegida, el bloque ya es
+                // visible: allí recién se crea el buscador de Google Places.
+                if (n === 2 && typeof window.crearBuscadorAfectacion === 'function') {
+                    const radio = document.querySelector('input[name="misma_dir"]:checked');
+                    if (radio && radio.value === 'no') window.crearBuscadorAfectacion();
+                }
             }
 
             function valor(nombre) {
