@@ -719,7 +719,7 @@ let formHTML = `
             htmlContent += `
                 <div class="ejecutor-text">
                     <svg style="width:16px; height:16px; fill:var(--success);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                    <span>Acción finalizada por <b>${tarea.ejecutor}</b> • ⏱ ${tarea.tiempo}</span>
+                    <span>Acción finalizada por <b>${tarea.ejecutor}</b>${tarea.direccion_ejecutora ? ' · 🏤 <b>' + tarea.direccion_ejecutora + '</b>' : ''} • ⏱ ${tarea.tiempo}</span>
                 </div>
             `;
             
@@ -745,6 +745,56 @@ let formHTML = `
         htmlContent += `</div></div>`;
     });
     htmlContent += `</div>`; 
+
+    // 🏤 MULTI-DIRECCIÓN: CHIPS + MURO COMPARTIDO (el admin también puede escribir)
+    let dirsParticipantes = ticket.direcciones_participantes || [];
+    if (dirsParticipantes.length > 0) {
+        htmlContent += `
+            <div style="background: white; border: 1px dashed var(--border-delicate); padding: 22px; border-radius: 12px; margin-top: 20px;">
+                <b style="color: var(--primary); font-size: 0.85rem; text-transform: uppercase;">Direcciones que atienden este caso</b>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                    ${dirsParticipantes.map(d => `<span class="badge" style="background:${d.es_principal ? 'var(--primary)' : '#EFF6FF'}; color:${d.es_principal ? '#fff' : '#1D4ED8'}; border:1px solid ${d.es_principal ? 'var(--primary)' : '#BFDBFE'};">${d.es_principal ? 'PRINCIPAL: ' : 'APOYO: '}${d.nombre}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    let msjsAdmin = ticket.mensajes || [];
+    let burbujasAdmin = msjsAdmin.map(m => `
+        <div class="oficio-item" style="margin-bottom:10px;">
+            <div class="oficio-num">🏤 ${m.direccion}${m.usuario ? ' · ' + m.usuario : ''}</div>
+            <div class="oficio-fecha">${m.fecha}</div>
+            <div class="oficio-desc">${m.texto}</div>
+            ${m.evidencia_url ? `<a href="${m.evidencia_url}" target="_blank" class="btn-pill">Ver Evidencia</a>` : ''}
+        </div>
+    `).join('');
+    htmlContent += `
+        <div style="background: white; border: 1px dashed var(--border-delicate); padding: 22px; border-radius: 12px; margin-top: 15px;">
+            <b style="color: var(--primary); font-size: 0.85rem; text-transform: uppercase;">📣 Muro entre direcciones</b>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:4px 0 12px;">Todas las direcciones ven este muro y todas pueden responder.</p>
+            <div style="max-height: 260px; overflow-y:auto; margin-bottom: 14px; padding-right: 6px;">
+                ${burbujasAdmin || '<p style="font-size:0.85rem; color:var(--gray-text); font-style:italic;">Aún no hay mensajes entre direcciones.</p>'}
+            </div>
+            <form method="POST" action="{% url 'inicio' %}" enctype="multipart/form-data">
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfTokenSeguro}">
+                <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                <input type="hidden" name="action" value="enviar_mensaje">
+                <div style="display:flex; gap:10px; flex-direction:column;">
+                    <select name="direccion_id" class="form-control" required>
+                        <option value="">-- Dirección que emite el mensaje --</option>
+                        {% for dir in direcciones %}
+                        <option value="{{ dir.id }}">{{ dir.nombre_direccion }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" name="mensaje_direccion" class="form-control" placeholder="Escribe al resto de direcciones..." required style="padding:10px;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="file" name="evidencia_mensaje" class="form-control" style="padding:8px; flex:1;" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                        <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Enviar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    `;
 
     // 3. BOTÓN DE APROBACIÓN O RECHAZO PARA EL ADMIN SÚPREMO
     if (ticket.status === 'En Validación') {

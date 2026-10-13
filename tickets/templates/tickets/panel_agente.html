@@ -486,6 +486,8 @@
         const ROL_ACTUAL = "{{ rol_usuario }}";
         const ES_ESPECIAL = "{{ es_especial }}" === "True";
         const OMNIPOTENTE = "{{ es_omnipotente }}" === "True";
+        // 🏤 Multi-dirección: id del área del usuario logueado (0 si no tiene)
+        const AREA_ID = Number("{{ area_usuario_id }}") || 0;
 
         // ============================================================================
         // MOTOR AJAX ROBUSTO (CERO ERRORES DE CONEXIÓN)
@@ -683,6 +685,8 @@
             let hasCoordinador = ticket.coordinador && ticket.coordinador !== 'Sin asignar';
             let isResuelto = ticket.status === 'Resuelto';
             let esAtencionDirecta = ticket.tareas.length > 0 && !hasSubdirector;
+            // 🏤 Multi-dirección: ¿el área del usuario participa en este ticket?
+            let esParticipante = AREA_ID > 0 && (ticket.direcciones_participantes || []).some(d => d.id === AREA_ID);
 
             let trackPercent = 0;
             if (hasSubdirector || ticket.tareas.length > 0) trackPercent = 50; 
@@ -742,7 +746,7 @@
 
                 if (tarea.completada) {
                     htmlContent += `
-                        <span class="ejecutor-text">Acción finalizada por: ${tarea.ejecutor}</span>
+                        <span class="ejecutor-text">Acción finalizada por: ${tarea.ejecutor}${tarea.direccion_ejecutora ? ' · 🏤 ' + tarea.direccion_ejecutora : ''}</span>
                     `;
                     
                     if (tarea.evidencias && tarea.evidencias.length > 0) {
@@ -762,7 +766,7 @@
                         `;
                     }
                 } else {
-                    if ((ROL_ACTUAL === 'Director' || ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador' || OMNIPOTENTE) && ticket.status !== 'Resuelto') {
+                    if ((ROL_ACTUAL === 'Director' || ROL_ACTUAL === 'Subdirector' || ROL_ACTUAL === 'Coordinador' || OMNIPOTENTE || esParticipante) && ticket.status !== 'Resuelto') {
                         htmlContent += `
                             <form onsubmit="enviarFormularioAJAX(event, this)" style="border-top: 1px dashed var(--border-delicate); margin-top: 15px; padding-top: 15px;">
                                 <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
@@ -789,34 +793,17 @@
             htmlContent += `</div>`; 
 
             let htmlExtras = "";
-            if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE) && ticket.status === 'En Validación') {
+            // 🔒 El cierre/validación (aprobar/devolver) es EXCLUSIVO del Super Administrador
+            // desde su panel. Aquí solo informamos que el caso espera esa validación.
+            if (ticket.status === 'En Validación') {
                 htmlExtras += `
                     <div style="background: #EFF6FF; border: 1.5px dashed #3B82F6; padding: 25px; border-radius: 12px; margin-top: 20px; box-shadow: var(--shadow-card);">
                         <h3 style="margin-top:0; color: #1D4ED8; display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:1.3rem;">✓</span> Validación Requerida por Dirección
+                            <span style="font-size:1.3rem;">⏳</span> En Validación de la Dirección General
                         </h3>
-                        <p style="font-size: 0.85rem; color: #1E40AF; margin-bottom:15px;">
-                            Las acciones tácticas registradas han sido completadas. Como Director, puede dar el visto bueno y concluir definitivamente el caso al 100%, o devolverlo con observaciones para corrección.
+                        <p style="font-size: 0.85rem; color: #1E40AF; margin:0;">
+                            Este caso completó todas sus acciones. Solo la Dirección General (Super Administrador) puede dar el visto bueno y concluirlo al 100%, o devolverlo con observaciones para corrección.
                         </p>
-                        
-                        <form onsubmit="enviarFormularioAJAX(event, this)">
-                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
-                            <input type="hidden" name="action_4d" id="action_val_${ticket.folio}" value="aprobar_ticket">
-                            
-                            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Observaciones de Cierre o Devolución:</label>
-                                <input type="text" name="notas_agente" class="form-control" placeholder="Ej: Caso concluido y verificado satisfactoriamente." style="padding:10px;">
-                                
-                                <label style="font-size:0.75rem; font-weight:bold; color:var(--primary);">Evidencia Complementaria (Opcional):</label>
-                                <input type="file" name="evidencia_tarea" class="form-control" style="padding:8px;" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
-                            </div>
-
-                            <div style="display:flex; gap:15px;">
-                                <button type="submit" onclick="document.getElementById('action_val_${ticket.folio}').value='aprobar_ticket'" class="btn btn-success" style="flex:1.2; padding: 14px; border-radius: 50px; font-weight:800; cursor:pointer;">Aprobar y Concluir (100%)</button>
-                                <button type="submit" onclick="document.getElementById('action_val_${ticket.folio}').value='rechazar_ticket'" class="btn btn-danger-outline" style="flex:1; padding: 14px; border-radius: 50px; font-weight:800; background:white; cursor:pointer;">Devolver Trámite</button>
-                            </div>
-                        </form>
                     </div>
                 `;
             }
@@ -868,7 +855,7 @@
                 `;
             }
 
-            if ((ROL_ACTUAL === 'Director' || ROL_ACTUAL === 'Subdirector' || OMNIPOTENTE || (ROL_ACTUAL === 'Coordinador' && ES_ESPECIAL)) && ticket.status !== 'Resuelto') {
+            if ((ROL_ACTUAL === 'Director' || ROL_ACTUAL === 'Subdirector' || OMNIPOTENTE || esParticipante || (ROL_ACTUAL === 'Coordinador' && ES_ESPECIAL)) && ticket.status !== 'Resuelto') {
                 htmlExtras += `
                     <div style="background: #F8FAFC; padding: 25px; border-radius: 12px; margin-top: 15px; border: 1px dashed var(--primary);">
                         <b style="color: var(--primary); font-size: 0.9rem; text-transform: uppercase;">+ Añadir Nodo de Acción Adicional</b>
@@ -945,6 +932,75 @@
                                     <button type="submit" class="btn btn-warning" style="white-space:nowrap; padding:12px 25px; font-size:0.85rem;">Crear y Completar</button>
                                 </div>
                             </div>
+                        </form>
+                    </div>
+                `;
+            }
+
+            // ============================================================================
+            // 🏤 MULTI-DIRECCIÓN: CHIPS DE DIRECCIONES + MURO COMPARTIDO + AGREGAR DIRECCIÓN
+            // ============================================================================
+            let dirsParticipantes = ticket.direcciones_participantes || [];
+            if (dirsParticipantes.length > 0) {
+                htmlExtras += `
+                    <div style="background: white; border: 1px dashed var(--border-delicate); padding: 22px; border-radius: 12px; margin-top: 15px; box-shadow: var(--shadow-card);">
+                        <b style="color: var(--primary); font-size: 0.85rem; text-transform: uppercase;">Direcciones que atienden este caso</b>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                            ${dirsParticipantes.map(d => `<span class="badge" style="background:${d.es_principal ? 'var(--primary)' : '#EFF6FF'}; color:${d.es_principal ? '#fff' : '#1D4ED8'}; border:1px solid ${d.es_principal ? 'var(--primary)' : '#BFDBFE'};">${d.es_principal ? 'PRINCIPAL: ' : 'APOYO: '}${d.nombre}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            let msjs = ticket.mensajes || [];
+            if (msjs.length > 0 || esParticipante) {
+                let burbujas = msjs.map(m => `
+                    <div class="oficio-item" style="margin-bottom:10px;">
+                        <div class="oficio-num">🏤 ${m.direccion}${m.usuario ? ' · ' + m.usuario : ''}</div>
+                        <div class="oficio-fecha">${m.fecha}</div>
+                        <div class="oficio-desc">${m.texto}</div>
+                        ${m.evidencia_url ? `<a href="${m.evidencia_url}" target="_blank" class="btn btn-success" style="padding:5px 12px; font-size:0.72rem; border-radius:50px; text-decoration:none; display:inline-block; margin-top:6px;">VER EVIDENCIA</a>` : ''}
+                    </div>
+                `).join('');
+                htmlExtras += `
+                    <div style="background: white; border: 1px dashed var(--border-delicate); padding: 22px; border-radius: 12px; margin-top: 15px; box-shadow: var(--shadow-card);">
+                        <b style="color: var(--primary); font-size: 0.85rem; text-transform: uppercase;">📣 Muro entre direcciones</b>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin:4px 0 12px;">Todas las direcciones que atienden el caso ven este muro y todas pueden responder.</p>
+                        <div style="max-height: 260px; overflow-y:auto; margin-bottom: 14px; padding-right: 6px;">
+                            ${burbujas || '<p style="font-size:0.85rem; color:var(--gray-text); font-style:italic;">Aún no hay mensajes entre direcciones.</p>'}
+                        </div>
+                        ${esParticipante ? `
+                        <form onsubmit="enviarFormularioAJAX(event, this)">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" value="enviar_mensaje">
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <input type="text" name="mensaje_direccion" class="form-control" placeholder="Escribe a las demás direcciones..." required style="padding:10px;">
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <input type="file" name="evidencia_mensaje" class="form-control" style="padding:8px; flex:1;" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                                    <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Enviar</button>
+                                </div>
+                            </div>
+                        </form>` : ''}
+                    </div>
+                `;
+            }
+
+            if ((ROL_ACTUAL === 'Director' || OMNIPOTENTE || esParticipante) && ticket.status !== 'Resuelto') {
+                htmlExtras += `
+                    <div style="background: white; border: 1px dashed var(--warning); padding: 22px; border-radius: 12px; margin-top: 15px; box-shadow: var(--shadow-card);">
+                        <b style="color: var(--warning); font-size: 0.85rem; text-transform: uppercase;">+ Agregar otra dirección al caso</b>
+                        <form onsubmit="enviarFormularioAJAX(event, this)" style="display:flex; gap:10px; margin-top:12px;">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                            <input type="hidden" name="folio_ticket" value="${ticket.folio}">
+                            <input type="hidden" name="action_4d" value="agregar_direccion">
+                            <select name="direccion_id" class="form-control" required>
+                                <option value="">-- Seleccionar dirección --</option>
+                                {% for dir in direcciones %}
+                                <option value="{{ dir.id }}">{{ dir.nombre_direccion }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-warning" style="white-space:nowrap;">Agregar</button>
                         </form>
                     </div>
                 `;

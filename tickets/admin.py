@@ -41,7 +41,18 @@ class TareaTicketInline(admin.TabularInline):
     model = TareaTicket
     extra = 0
     readonly_fields = ('fecha_creacion', 'fecha_completada', 'ejecutor')
-    fields = ('descripcion', 'completada', 'ejecutor', 'evidencia_tarea', 'fecha_creacion', 'fecha_completada')
+    fields = ('descripcion', 'completada', 'ejecutor', 'direccion_ejecutora', 'evidencia_tarea', 'fecha_creacion', 'fecha_completada')
+
+class DireccionParticipanteInline(admin.TabularInline):
+    model = DireccionParticipante
+    extra = 1
+    readonly_fields = ('fecha_incorporacion',)
+
+class MensajeDireccionInline(admin.TabularInline):
+    model = MensajeDireccion
+    extra = 0
+    readonly_fields = ('fecha_creacion',)
+    fields = ('direccion', 'usuario', 'texto', 'evidencia', 'fecha_creacion')
 
 @admin.register(TareaTicket)
 class TareaTicketAdmin(admin.ModelAdmin):
@@ -67,7 +78,7 @@ class TicketAyudaAdmin(admin.ModelAdmin):
     search_fields = ('folio', 'nombre', 'apellido_paterno', 'apellido_materno', 'email', 'asunto', 'notas', 'telefono', 'calle')
     list_editable = ('status',) 
     date_hierarchy = 'fecha'
-    inlines = [TareaTicketInline]
+    inlines = [TareaTicketInline, DireccionParticipanteInline, MensajeDireccionInline]
     
     fieldsets = (
         ('Información del Ciudadano', {
@@ -113,3 +124,18 @@ class EvidenciaTareaAdmin(admin.ModelAdmin):
     list_display = ('id', 'tarea', 'archivo', 'fecha_subida')
     list_filter = ('fecha_subida',)
     search_fields = ('tarea__descripcion', 'archivo')
+
+# -----------------------------------------------------
+# 7. MULTI-DIRECCIÓN Y MURO COMPARTIDO
+# -----------------------------------------------------
+@admin.register(DireccionParticipante)
+class DireccionParticipanteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ticket', 'direccion', 'es_principal', 'fecha_incorporacion')
+    list_filter = ('es_principal', 'direccion')
+    search_fields = ('ticket__folio', 'direccion__nombre_direccion')
+
+@admin.register(MensajeDireccion)
+class MensajeDireccionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ticket', 'direccion', 'usuario', 'fecha_creacion')
+    list_filter = ('direccion', 'fecha_creacion')
+    search_fields = ('ticket__folio', 'texto', 'direccion__nombre_direccion')

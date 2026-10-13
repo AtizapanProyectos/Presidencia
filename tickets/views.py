@@ -199,6 +199,25 @@ def inicio(request):
                     pass
                 return redirect('inicio')
 
+            elif action == 'enviar_mensaje':
+                # 📣 El Super Administrador también puede escribir en el muro entre direcciones
+                try:
+                    ticket_msg = TicketAyuda.objects.get(folio=folio_ticket)
+                    texto_mensaje = request.POST.get('mensaje_direccion', '').strip()
+                    direccion_msg_id = request.POST.get('direccion_id')
+                    evidencia_mensaje = request.FILES.get('evidencia_mensaje')
+                    if texto_mensaje and direccion_msg_id:
+                        MensajeDireccion.objects.create(
+                            ticket=ticket_msg,
+                            direccion_id=direccion_msg_id,
+                            usuario=request.user,
+                            texto=texto_mensaje,
+                            evidencia=evidencia_mensaje if evidencia_mensaje else None
+                        )
+                except TicketAyuda.DoesNotExist:
+                    pass
+                return redirect('inicio')
+
             else:
                 nuevo_agente_id = request.POST.get('nuevo_agente')
                 try:
@@ -229,6 +248,10 @@ def inicio(request):
     'tareas',
     'tareas__evidencias_multiples',
     'tareas__ejecutor',
+    'tareas__direccion_ejecutora',
+    'direcciones_participantes__direccion',
+    'mensajes_direcciones__direccion',
+    'mensajes_direcciones__usuario',
     )
     q = request.GET.get('q', '')
     fecha_inicio = request.GET.get('fecha_inicio', '')
@@ -273,6 +296,7 @@ def inicio(request):
                 'descripcion': t.descripcion,
                 'completada': t.completada,
                 'ejecutor': t.ejecutor.username if t.ejecutor else '',
+                'direccion_ejecutora': t.direccion_ejecutora.nombre_direccion if t.direccion_ejecutora else '',
                 'evidencias': lista_archivos,
                 'tiempo': tiempo
             })
@@ -316,6 +340,22 @@ def inicio(request):
             'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
             'via': p.via_entrada if p.via_entrada else 'Ciudadano',
             'ocp': p.numero_ocp if p.numero_ocp else 'N/A',
+            # 🏤 Multi-dirección: direcciones que atienden el caso + muro compartido
+            'direcciones_participantes': [
+                {'id': dp.direccion.id, 'nombre': dp.direccion.nombre_direccion, 'es_principal': dp.es_principal}
+                for dp in p.direcciones_participantes.all()
+            ],
+            'mensajes': [
+                {
+                    'id': m.id,
+                    'direccion': m.direccion.nombre_direccion,
+                    'usuario': m.usuario.username if m.usuario else '',
+                    'texto': m.texto,
+                    'evidencia_url': m.evidencia.url if m.evidencia else '',
+                    'fecha': m.fecha_creacion.strftime('%d/%m/%Y %H:%M')
+                }
+                for m in p.mensajes_direcciones.all()
+            ],
         })
 
     if request.GET.get('ajax') == '1':
@@ -360,18 +400,31 @@ def crear_ticket(request):
                         agentes_ordenados = agentes_area.annotate(carga_trabajo=Count('mis_tickets', filter=~Q(mis_tickets__status='Resuelto'))).order_by('carga_trabajo')
                         ticket.agente_asignado = agentes_ordenados.first()
             ticket.save()
-            
+
+            # 🏤 Multi-dirección: registrar las direcciones de apoyo seleccionadas al crear el ticket.
+            # La dirección principal la registra automáticamente la señal post_save.
+            for dir_apoyo_id in request.POST.getlist('direcciones_apoyo'):
+                if ticket.direccion_id and str(dir_apoyo_id) == str(ticket.direccion_id):
+                    continue  # La principal ya se registra sola
+                DireccionParticipante.objects.get_or_create(
+                    ticket=ticket, direccion_id=dir_apoyo_id
+                )
+
             if request.user.is_superuser:
                 return redirect('inicio') 
             elif request.user.is_staff:
                 return redirect('panel_agente') 
             else:
                 return redirect('crear_ticket') 
-            
+                
     else:
         formulario = TicketForm()
         
-    return render(request, 'tickets/crear_ticket.html', {'formulario': formulario, 'groq_api_key': os.environ.get("GROQ_API_KEY", "")})
+    return render(request, 'tickets/crear_ticket.html', {
+        'formulario': formulario,
+        'groq_api_key': os.environ.get("GROQ_API_KEY", ""),
+        'direcciones': CatDireccion.objects.all().order_by('nombre_direccion')
+    })
 
 @login_required(login_url='/')
 def panel_agente(request):
@@ -397,25 +450,37 @@ def panel_agente(request):
         action_4d = request.POST.get('action_4d')
         
         try:
+            # 🔒 La validación/cierre (aprobar/devolver) es EXCLUSIVA del super
+            # administrador desde su panel (`inicio`). Nunca desde la consola operativa.
+            if action_4d in ('aprobar_ticket', 'rechazar_ticket'):
+                if request.POST.get('ajax_post') == '1':
+                    return JsonResponse(
+                        {'error': 'Solo la Dirección General (Super Administrador) puede validar o devolver este trámite.'},
+                        status=403
+                    )
+                return redirect('panel_agente')
+
             if es_omnipotente:
                 ticket = TicketAyuda.objects.get(folio=folio_ticket)
             elif rol_usuario == 'Director' and area_usuario:
-                ticket = TicketAyuda.objects.get(
-                    Q(folio=folio_ticket) & (
-                        Q(director_asignado=usuario_actual) |
-                        Q(direccion=area_usuario) |
-                        Q(agente_asignado=usuario_actual)
-                    )
+                condiciones = (
+                    Q(director_asignado=usuario_actual) |
+                    Q(direccion=area_usuario) |
+                    Q(direcciones_participantes__direccion=area_usuario) |
+                    Q(agente_asignado=usuario_actual)
                 )
+                ticket = TicketAyuda.objects.filter(Q(folio=folio_ticket) & condiciones).distinct().get()
             else:
-                ticket = TicketAyuda.objects.get(
-                    Q(folio=folio_ticket) & (
-                        Q(agente_asignado=usuario_actual) | 
-                        Q(director_asignado=usuario_actual) | 
-                        Q(subdirector_asignado=usuario_actual) | 
-                        Q(coordinador_asignado=usuario_actual)
-                    )
+                condiciones = (
+                    Q(agente_asignado=usuario_actual) | 
+                    Q(director_asignado=usuario_actual) |
+                    Q(subdirector_asignado=usuario_actual) |
+                    Q(coordinador_asignado=usuario_actual)
                 )
+                # Multi-dirección: también opera los tickets de su área participante
+                if area_usuario:
+                    condiciones |= Q(direcciones_participantes__direccion=area_usuario)
+                ticket = TicketAyuda.objects.filter(Q(folio=folio_ticket) & condiciones).distinct().get()
 
             if rol_usuario == 'Director' and not ticket.director_asignado:
                 ticket.director_asignado = usuario_actual
@@ -448,37 +513,6 @@ def panel_agente(request):
                     ticket.coordinador_asignado_id = coordinador_id
                     ticket.save()
             
-            elif action_4d == 'aprobar_ticket' and (rol_usuario == 'Director' or es_omnipotente):
-                ticket.status = 'Resuelto'
-                ticket.porcentaje_avance = 100
-                nota_texto = request.POST.get('notas_agente', '')
-                nota_previa = ticket.observaciones if ticket.observaciones else ''
-                if nota_texto:
-                    ticket.observaciones = f"{nota_previa}\n\n[DIRECCIÓN]: {nota_texto}\n[SISTEMA]: Ticket validado y cerrado por la Dirección."
-                else:
-                    ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Ticket validado y cerrado por la Dirección."
-                ticket.save()
-
-            elif action_4d == 'rechazar_ticket' and (rol_usuario == 'Director' or es_omnipotente):
-                nota_rechazo = request.POST.get('notas_agente', 'Revision requerida')
-                evidencia = request.FILES.get('evidencia_tarea')
-                
-                TareaTicket.objects.create(
-                    ticket=ticket, 
-                    descripcion=f"CORRECCIÓN: {nota_rechazo}"
-                )
-                
-                ticket.status = 'En Proceso'
-                total_t = ticket.tareas.count()
-                hechas_t = ticket.tareas.filter(completada=True).count()
-                ticket.porcentaje_avance = int((hechas_t / total_t) * 100)
-                
-                nota_previa = ticket.observaciones if ticket.observaciones else ''
-                ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Tramite devuelto por la Direccion."
-                if evidencia:
-                    ticket.evidencia = evidencia
-                ticket.save()
-
             elif action_4d == 'completar_tarea':
                 tarea_id = request.POST.get('tarea_id')
                 evidencias = request.FILES.getlist('evidencia_tarea') # getlist atrapa múltiples
@@ -488,6 +522,8 @@ def panel_agente(request):
                     tarea = TareaTicket.objects.get(id=tarea_id)
                     tarea.completada = True
                     tarea.ejecutor = usuario_actual
+                    # 🏤 Chip identificador: qué dirección completó esta acción
+                    tarea.direccion_ejecutora = area_usuario if area_usuario else None
                     tarea.fecha_completada = timezone.now()
                     tarea.save()
                     
@@ -519,6 +555,7 @@ def panel_agente(request):
                         descripcion=descripcion,
                         completada=True,
                         ejecutor=usuario_actual,
+                        direccion_ejecutora=area_usuario if area_usuario else None,
                         fecha_completada=timezone.now()
                     )
                     
@@ -542,17 +579,35 @@ def panel_agente(request):
                             ticket.status = 'En Validación'
                     ticket.save()
 
-            elif not action_4d:
-                nuevo_status = request.POST.get('status')
-                nuevo_porcentaje = request.POST.get('porcentaje')
-                nuevas_notas = request.POST.get('notas_agente')
-                archivo_evidencia = request.FILES.get('evidencia')
-                if nuevo_status: ticket.status = nuevo_status
-                if nuevo_porcentaje: ticket.porcentaje_avance = nuevo_porcentaje
-                if nuevas_notas: ticket.notas_agente = nuevas_notas
-                if archivo_evidencia: ticket.evidencia = archivo_evidencia
-                if int(nuevo_porcentaje) == 100: ticket.status = 'Resuelto'
-                ticket.save()
+            elif action_4d == 'enviar_mensaje':
+                # 📣 Muro compartido entre direcciones: cualquier dirección participante
+                # escribe y TODAS ven el mensaje. Sin destinos ni respuestas cerradas.
+                texto_mensaje = request.POST.get('mensaje_direccion', '').strip()
+                evidencia_mensaje = request.FILES.get('evidencia_mensaje')
+                if texto_mensaje:
+                    MensajeDireccion.objects.create(
+                        ticket=ticket,
+                        direccion=area_usuario if area_usuario else ticket.direccion,
+                        usuario=usuario_actual,
+                        texto=texto_mensaje,
+                        evidencia=evidencia_mensaje if evidencia_mensaje else None
+                    )
+
+            elif action_4d == 'agregar_direccion':
+                # ➕ Sumar otra dirección al caso (multi-dirección en cualquier momento)
+                nueva_direccion_id = request.POST.get('direccion_id')
+                if nueva_direccion_id:
+                    _, creada = DireccionParticipante.objects.get_or_create(
+                        ticket=ticket, direccion_id=nueva_direccion_id
+                    )
+                    if creada:
+                        nota_previa = ticket.observaciones if ticket.observaciones else ''
+                        ticket.observaciones = f"{nota_previa}\n\n[SISTEMA]: Nueva dirección incorporada al expediente el {timezone.now().strftime('%d/%m/%Y')}."
+                        ticket.save()
+
+            # ⚠️ EL CIERRE MANUAL (status/porcentaje a mano) FUE RETIRADO A PROPÓSITO:
+            # el estatus de un ticket solo cambia por acciones 4D legítimas y la
+            # validación final es exclusiva del Super Administrador (vista `inicio`).
 
         except TicketAyuda.DoesNotExist:
             pass
@@ -568,37 +623,49 @@ def panel_agente(request):
     fecha_fin = request.GET.get('fecha_fin', '')
     colonia_id = request.GET.get('colonia_id', '')
 
+    # Filtro base: tickets donde el usuario aparece en la cadena de asignación 4D
+    filtro_asignaciones = (
+        Q(agente_asignado=usuario_actual) |
+        Q(director_asignado=usuario_actual) |
+        Q(subdirector_asignado=usuario_actual) |
+        Q(coordinador_asignado=usuario_actual)
+    )
+    # Multi-dirección: también ve y opera los tickets donde su área es participante
+    if area_usuario:
+        filtro_asignaciones |= Q(direcciones_participantes__direccion=area_usuario)
+
     if es_omnipotente and area_usuario:
         mis_tickets = TicketAyuda.objects.select_related(
             'colonia', 'colonia_ciudadano', 'direccion',
             'director_asignado', 'subdirector_asignado', 'coordinador_asignado'
         ).prefetch_related(
-            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
+            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor', 'tareas__direccion_ejecutora',
+            'direcciones_participantes__direccion',
+            'mensajes_direcciones__direccion', 'mensajes_direcciones__usuario'
         ).filter(
-            direccion=area_usuario
+            Q(direccion=area_usuario) | filtro_asignaciones
         ).distinct()
     elif rol_usuario == 'Director' and area_usuario:
         mis_tickets = TicketAyuda.objects.select_related(
             'colonia', 'colonia_ciudadano', 'direccion',
             'director_asignado', 'subdirector_asignado', 'coordinador_asignado'
         ).prefetch_related(
-            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
+            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor', 'tareas__direccion_ejecutora',
+            'direcciones_participantes__direccion',
+            'mensajes_direcciones__direccion', 'mensajes_direcciones__usuario'
         ).filter(
-            Q(direccion=area_usuario) |
-            Q(director_asignado=usuario_actual) |
-            Q(agente_asignado=usuario_actual)
+            Q(direccion=area_usuario) | filtro_asignaciones
         ).distinct()
     else:
         mis_tickets = TicketAyuda.objects.select_related(
             'colonia', 'colonia_ciudadano', 'direccion',
             'director_asignado', 'subdirector_asignado', 'coordinador_asignado'
         ).prefetch_related(
-            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor'
+            'tareas', 'tareas__evidencias_multiples', 'tareas__ejecutor', 'tareas__direccion_ejecutora',
+            'direcciones_participantes__direccion',
+            'mensajes_direcciones__direccion', 'mensajes_direcciones__usuario'
         ).filter(
-            Q(agente_asignado=usuario_actual) |
-            Q(director_asignado=usuario_actual) |
-            Q(subdirector_asignado=usuario_actual) |
-            Q(coordinador_asignado=usuario_actual)
+            filtro_asignaciones
         ).distinct()
 
     if q: mis_tickets = mis_tickets.filter(Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(email__icontains=q) | Q(apellido_paterno__icontains=q) | Q(apellido_materno__icontains=q) | Q(asunto__icontains=q) | Q(calle__icontains=q))
@@ -621,6 +688,7 @@ def panel_agente(request):
                 'descripcion': t.descripcion,
                 'completada': t.completada,
                 'ejecutor': t.ejecutor.username if t.ejecutor else '',
+                'direccion_ejecutora': t.direccion_ejecutora.nombre_direccion if t.direccion_ejecutora else '',
                 'evidencias': lista_archivos
             })
         puntos_data.append({
@@ -657,6 +725,22 @@ def panel_agente(request):
             'tareas': tareas_list,
             'gestor': p.gestor if p.gestor else 'Ciudadano Directo',
             'ocp': p.numero_ocp if p.numero_ocp else '',
+            # 🏤 Multi-dirección: direcciones que atienden el caso + muro compartido
+            'direcciones_participantes': [
+                {'id': dp.direccion.id, 'nombre': dp.direccion.nombre_direccion, 'es_principal': dp.es_principal}
+                for dp in p.direcciones_participantes.all()
+            ],
+            'mensajes': [
+                {
+                    'id': m.id,
+                    'direccion': m.direccion.nombre_direccion,
+                    'usuario': m.usuario.username if m.usuario else '',
+                    'texto': m.texto,
+                    'evidencia_url': m.evidencia.url if m.evidencia else '',
+                    'fecha': m.fecha_creacion.strftime('%d/%m/%Y %H:%M')
+                }
+                for m in p.mensajes_direcciones.all()
+            ],
         })
 
     if request.GET.get('ajax') == '1':
@@ -683,6 +767,8 @@ def panel_agente(request):
         'rol_usuario': rol_usuario,
         'es_especial': "True" if es_especial else "False",
         'es_omnipotente': "True" if es_omnipotente else "False",
+        'area_usuario_id': area_usuario.id if area_usuario else '',
+        'direcciones': CatDireccion.objects.all().order_by('nombre_direccion'),
         'empleados_inferiores': empleados_inferiores
     }
     return render(request, 'tickets/panel_agente.html', contexto)

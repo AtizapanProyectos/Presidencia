@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.contrib.auth.models import User
 from datetime import date 
 
@@ -140,6 +142,8 @@ class TareaTicket(models.Model):
     
     # Registramos qué usuario específico completó esta subtarea
     ejecutor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    # 🏤 Multi-dirección: qué área completó esta acción (para el chip identificador)
+    direccion_ejecutora = models.ForeignKey(CatDireccion, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Dirección que completó la acción")
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_completada = models.DateTimeField(null=True, blank=True)
@@ -168,3 +172,57 @@ class EvidenciaTarea(models.Model):
         # Extraemos solo el nombre del archivo (sin toda la ruta gigante de las carpetas)
         nombre_archivo = self.archivo.name.split('/')[-1] if self.archivo else 'Sin archivo'
         return f"📄 {nombre_archivo} (Subido el {self.fecha_subida.strftime('%d/%m/%Y')})"
+
+
+# ==========================================
+# 4. EVOLUCIÓN: MULTI-DIRECCIÓN Y MURO COMPARTIDO
+# ==========================================
+class DireccionParticipante(models.Model):
+    """Direcciones (áreas) que atienden un mismo ticket.
+    Un ticket puede tener 1 (la principal) o N direcciones trabajando en conjunto."""
+    ticket = models.ForeignKey(TicketAyuda, on_delete=models.CASCADE, related_name='direcciones_participantes')
+    direccion = models.ForeignKey(CatDireccion, on_delete=models.CASCADE, related_name='tickets_participados')
+    es_principal = models.BooleanField(default=False)
+    fecha_incorporacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('ticket', 'direccion')  # Evita duplicados
+        verbose_name = 'Dirección participante'
+        verbose_name_plural = 'Direcciones participantes'
+
+    def __str__(self):
+        return f"{self.direccion.nombre_direccion} → Folio {self.ticket.folio}"
+
+
+class MensajeDireccion(models.Model):
+    """Muro compartido entre las direcciones que atienden un ticket.
+    Todas las direcciones participantes ven todos los mensajes y todas pueden responder."""
+    ticket = models.ForeignKey(TicketAyuda, on_delete=models.CASCADE, related_name='mensajes_direcciones')
+    direccion = models.ForeignKey(CatDireccion, on_delete=models.CASCADE, related_name='mensajes_emitidos')
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='mensajes_escritos')
+    texto = models.TextField()
+    evidencia = models.FileField(upload_to='mensajes_direcciones/', blank=True, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Mensaje entre direcciones'
+        verbose_name_plural = 'Mensajes entre direcciones'
+        ordering = ('fecha_creacion',)
+
+    def __str__(self):
+        return f"{self.direccion.nombre_direccion} (Folio {self.ticket.folio}): {self.texto[:40]}"
+
+
+# ==========================================
+# 5. AUTO-REGISTRO DE LA DIRECCIÓN PRINCIPAL
+# ==========================================
+@receiver(post_save, sender=TicketAyuda)
+def asegurar_direccion_principal(sender, instance, **kwargs):
+    """Todo ticket siempre tiene su dirección principal registrada como participante.
+    No rompe la lógica actual: ticket.direccion sigue siendo la dirección principal."""
+    if instance.direccion_id:
+        DireccionParticipante.objects.get_or_create(
+            ticket=instance,
+            direccion_id=instance.direccion_id,
+            defaults={'es_principal': True}
+        )

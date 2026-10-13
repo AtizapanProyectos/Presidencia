@@ -158,6 +158,26 @@
         
         @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
+        /* =================================================================
+           WIZARD DE CAPTURA (4 pasos) — solo presentación, no cambia el POST
+           ================================================================= */
+        .wizard-progreso { display: flex; justify-content: space-between; margin-bottom: 28px; padding: 0 6px; }
+        .wz-paso { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; position: relative; }
+        .wz-circulo { width: 36px; height: 36px; border-radius: 50%; background: #E2E8F0; color: #64748B; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: 'Montserrat', sans-serif; font-size: 0.9rem; transition: all 0.3s ease; z-index: 2; }
+        .wz-paso.activo .wz-circulo { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(10,25,49,0.25); }
+        .wz-paso.completado .wz-circulo { background: var(--success); color: #fff; }
+        .wz-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-family: 'Montserrat', sans-serif; text-align: center; }
+        .wz-paso.activo .wz-label { color: var(--primary); }
+        .wz-paso.completado .wz-label { color: var(--success); }
+        .wz-paso:not(:last-child)::after { content: ''; position: absolute; top: 18px; left: calc(50% + 22px); right: calc(-50% + 22px); height: 2px; background: #E2E8F0; z-index: 1; }
+        .wz-paso.completado:not(:last-child)::after { background: var(--success); }
+
+        .wizard-paso { display: none; }
+        .wizard-paso.activo { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; grid-column: span 2; }
+        .paso-titulo { grid-column: span 2; font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--primary); font-size: 0.95rem; border-bottom: 2px solid var(--border-delicate); padding-bottom: 8px; margin: 0 0 4px; }
+        .wizard-nav { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; }
+        .wizard-nav .btn { min-width: 150px; justify-content: center; }
+
     </style>
 </head>
 <body>
@@ -174,98 +194,138 @@
         
         <div class="panel formulario-container">
             <h3>Datos del Solicitante y Afectación</h3>
-            <form method="POST">
+            <form method="POST" id="form-ticket">
                 {% csrf_token %}
-                
-                <div class="django-form">
-                    
-                    <p>{{ formulario.nombre.label_tag }} {{ formulario.nombre }}</p>
-                    <p>{{ formulario.apellido_paterno.label_tag }} {{ formulario.apellido_paterno }}</p>
-                    <p>{{ formulario.apellido_materno.label_tag }} {{ formulario.apellido_materno }}</p>
-                    <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
-                    <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
 
-                    <div style="grid-column: span 2; margin-top: 15px;">
-                        <h4 style="color: var(--primary); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Dirección del Ciudadano (Opcional)</h4>
-                    </div>
-                    
-                    <div style="grid-column: span 2; margin-bottom: 10px;">
-                        <div id="buscador-ciudadano"></div>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-bottom: 10px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
-                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
-                            ¿Tienes un Link de Google Maps del ciudadano? (Opcional):
-                        </label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="link_maps_ciudadano" placeholder="Pega aquí el enlace de Maps del ciudadano..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
-                            <button type="button" id="btn_procesar_link_ciudadano" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
-                                Extraer Dirección
-                            </button>
-                        </div>
-                        <div id="msg_link_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
-                        <div id="msg_groq_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
-                    </div>
-                    
-                    <p>{{ formulario.colonia_ciudadano.label_tag }} {{ formulario.colonia_ciudadano }}</p>
-                    <p>{{ formulario.calle_ciudadano.label_tag }} {{ formulario.calle_ciudadano }}</p>
-                    <p>{{ formulario.numero_exterior_ciudadano.label_tag }} {{ formulario.numero_exterior_ciudadano }}</p>
-                    <p>{{ formulario.numero_interior_ciudadano.label_tag }} {{ formulario.numero_interior_ciudadano }}</p>
-
-                    <div style="grid-column: span 2; background: #FFFBEB; padding: 15px; border-radius: 12px; border: 1px dashed #F59E0B; margin-top: 10px; margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #b45309; cursor: pointer; font-size: 0.9rem;">
-                            <input type="checkbox" id="chk_misma_direccion" style="width: 18px; height: 18px; accent-color: #D97706;">
-                            La afectación a reportar es en esta misma dirección (Copiar al mapa táctico)
-                        </label>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-top: 5px;">
-                        <h4 style="color: var(--gold-accent); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Detalles de la Petición</h4>
-                    </div>
-
-                    <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
-                    <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
-
-                    <div style="grid-column: span 2; margin-top: 10px; margin-bottom: 10px;">
-                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación de la afectación (Mueve el mapa o busca): </label>
-                        <div id="buscador-afectacion"></div>
-                    </div>
-
-                    <div style="grid-column: span 2; margin-bottom: 15px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
-                        <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
-                            ¿Tienes un Link de Google Maps? (Opcional):
-                        </label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="link_maps" placeholder="Pega aquí el enlace de Maps..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
-                            <button type="button" id="btn_procesar_link" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
-                                Extraer Texto y Ubicación
-                            </button>
-                        </div>
-                        <div id="msg_link" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
-                        <div id="msg_groq_afectacion" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
-                    </div>
-
-                    <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
-                    <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
-                    <p>{{ formulario.via_entrada.label_tag }} {{ formulario.via_entrada }}</p>
-                    <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
-
-                    <div style="display: none;">
-                        {{ formulario.colonia }}
-                        {{ formulario.calle }}
-                        {{ formulario.numero_exterior }}
-                        {{ formulario.numero_interior }}
-                        {{ formulario.latitud }}
-                        {{ formulario.longitud }}
-                    </div>
-                    
-                    <div id="mensaje-prediccion" class="aviso-ia" style="grid-column: span 2;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
-                        Automatización en la selección de catálogos para asignación
-                    </div>
+                <div class="wizard-progreso">
+                    <div class="wz-paso activo" data-wz="1"><div class="wz-circulo">1</div><div class="wz-label">Ciudadano</div></div>
+                    <div class="wz-paso" data-wz="2"><div class="wz-circulo">2</div><div class="wz-label">Petición y Ubicación</div></div>
+                    <div class="wz-paso" data-wz="3"><div class="wz-circulo">3</div><div class="wz-label">Dependencias</div></div>
+                    <div class="wz-paso" data-wz="4"><div class="wz-circulo">4</div><div class="wz-label">Confirmar</div></div>
                 </div>
 
-                <button type="submit" class="btn btn-guardar">Generar Solicitud</button>
+                <div class="django-form">
+                    
+                    <div class="wizard-paso activo" data-paso="1">
+                        <h4 class="paso-titulo">Paso 1 · Datos del Solicitante</h4>
+                        <p>{{ formulario.nombre.label_tag }} {{ formulario.nombre }}</p>
+                        <p>{{ formulario.apellido_paterno.label_tag }} {{ formulario.apellido_paterno }}</p>
+                        <p>{{ formulario.apellido_materno.label_tag }} {{ formulario.apellido_materno }}</p>
+                        <p>{{ formulario.telefono.label_tag }} {{ formulario.telefono }}</p>
+                        <p>{{ formulario.email.label_tag }} {{ formulario.email }}</p>
+
+                        <div style="grid-column: span 2; background: rgba(241, 245, 249, 0.7); padding: 14px; border-radius: 12px; border: 1px solid #CBD5E1; margin-top: 6px;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--primary); cursor: pointer; font-size: 0.9rem; text-transform: none; letter-spacing: 0;">
+                                <input type="checkbox" id="chk_otra_direccion" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                ¿El ciudadano vive en otra dirección distinta a la afectación?
+                            </label>
+                        </div>
+
+                        <div id="bloque-direccion-ciudadano" style="display: none; grid-column: span 2;">
+                            <h4 style="color: var(--primary); border-bottom: 2px solid var(--border-delicate); padding-bottom: 5px; font-weight: 800; margin:0;">Dirección del Ciudadano</h4>
+
+                            <div style="margin-top: 12px;">
+                                <div id="buscador-ciudadano"></div>
+                            </div>
+
+                            <div style="margin-bottom: 10px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
+                                <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                                    ¿Tienes un Link de Google Maps del ciudadano? (Opcional):
+                                </label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="link_maps_ciudadano" placeholder="Pega aquí el enlace de Maps del ciudadano..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
+                                    <button type="button" id="btn_procesar_link_ciudadano" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
+                                        Extraer Dirección
+                                    </button>
+                                </div>
+                                <div id="msg_link_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
+                                <div id="msg_groq_ciudadano" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+                            </div>
+                            
+                            <p>{{ formulario.colonia_ciudadano.label_tag }} {{ formulario.colonia_ciudadano }}</p>
+                            <p>{{ formulario.calle_ciudadano.label_tag }} {{ formulario.calle_ciudadano }}</p>
+                            <p>{{ formulario.numero_exterior_ciudadano.label_tag }} {{ formulario.numero_exterior_ciudadano }}</p>
+                            <p>{{ formulario.numero_interior_ciudadano.label_tag }} {{ formulario.numero_interior_ciudadano }}</p>
+
+                            <div style="grid-column: span 2; background: #FFFBEB; padding: 15px; border-radius: 12px; border: 1px dashed #F59E0B; margin-top: 10px; margin-bottom: 10px;">
+                                <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #b45309; cursor: pointer; font-size: 0.9rem;">
+                                    <input type="checkbox" id="chk_misma_direccion" style="width: 18px; height: 18px; accent-color: #D97706;">
+                                    La afectación a reportar es en esta misma dirección (Copiar al mapa táctico)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wizard-paso" data-paso="2">
+                        <h4 class="paso-titulo">Paso 2 · Detalles de la Petición</h4>
+                        <p>{{ formulario.asunto.label_tag }} {{ formulario.asunto }}</p>
+                        <p>{{ formulario.notas.label_tag }} {{ formulario.notas }}</p>
+
+                        <div style="grid-column: span 2; margin-top: 10px; margin-bottom: 10px;">
+                            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Ubicación de la afectación (Mueve el mapa o busca): </label>
+                            <div id="buscador-afectacion"></div>
+                        </div>
+
+                        <div style="grid-column: span 2; margin-bottom: 15px; background: rgba(241, 245, 249, 0.7); padding: 15px; border-radius: 12px; border: 1px solid #CBD5E1;">
+                            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                                ¿Tienes un Link de Google Maps? (Opcional):
+                            </label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="link_maps" placeholder="Pega aquí el enlace de Maps..." style="flex-grow: 1; margin: 0; font-size: 0.85rem;">
+                                <button type="button" id="btn_procesar_link" class="btn btn-cancelar" style="margin: 0; border-radius: 8px; font-size: 0.8rem; padding: 10px 20px;">
+                                    Extraer Texto y Ubicación
+                                </button>
+                            </div>
+                            <div id="msg_link" style="font-size: 0.8rem; margin-top: 8px; color: var(--danger); display: none; font-weight: 600;"></div>
+                            <div id="msg_groq_afectacion" style="font-size: 0.8rem; margin-top: 8px; color: #8B5CF6; display: none; font-weight: 600;"></div>
+                        </div>
+                    </div>
+
+                    <div class="wizard-paso" data-paso="3">
+                        <h4 class="paso-titulo">Paso 3 · Dependencias que Atenderán el Caso</h4>
+                        <p>{{ formulario.direccion.label_tag }} {{ formulario.direccion }}</p>
+
+                        <div style="grid-column: span 2; background: #EFF6FF; border: 1px dashed #3B82F6; padding: 15px; border-radius: 12px; margin-bottom: 10px;">
+                            <label style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                                Direcciones que también atenderán el caso (Opcional — mantén presionado Ctrl para elegir varias):
+                            </label>
+                            <select name="direcciones_apoyo" multiple class="form-control" style="min-height: 110px;">
+                                {% for dir in direcciones %}
+                                <option value="{{ dir.id }}">{{ dir.nombre_direccion }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <p>{{ formulario.gestor.label_tag }} {{ formulario.gestor }}</p>
+                        <p>{{ formulario.via_entrada.label_tag }} {{ formulario.via_entrada }}</p>
+                        <p>{{ formulario.numero_ocp.label_tag }} {{ formulario.numero_ocp }}</p>
+
+                        <div style="display: none;">
+                            {{ formulario.colonia }}
+                            {{ formulario.calle }}
+                            {{ formulario.numero_exterior }}
+                            {{ formulario.numero_interior }}
+                            {{ formulario.latitud }}
+                            {{ formulario.longitud }}
+                        </div>
+                        
+                        <div id="mensaje-prediccion" class="aviso-ia" style="grid-column: span 2;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                            Automatización en la selección de catálogos para asignación
+                        </div>
+                    </div>
+
+                    <div class="wizard-paso" data-paso="4">
+                        <h4 class="paso-titulo">Paso 4 · Confirma antes de Generar</h4>
+                        <div id="resumen-ticket" style="grid-column: span 2; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 12px; padding: 18px; font-size: 0.9rem; line-height: 1.7;"></div>
+                    </div>
+
+                    <div class="wizard-nav">
+                        <button type="button" class="btn btn-cancelar" id="wz-atras" style="visibility:hidden;">← Atrás</button>
+                        <button type="button" class="btn btn-primary" id="wz-siguiente">Siguiente →</button>
+                        <button type="submit" class="btn btn-guardar" id="wz-enviar" style="display:none;">Generar Solicitud</button>
+                    </div>
+                </div>
             </form>
         </div>
 
@@ -367,7 +427,7 @@
             if (selectVia && inputOcp) {
                 const contenedorOcp = inputOcp.closest('p');
                 function toggleOcp() {
-                    if (selectVia.value === 'Oficio') {
+                    if (selectVia.value !== 'Ciudadano') {
                         contenedorOcp.style.setProperty('display', 'flex', 'important'); inputOcp.required = true; 
                     } else {
                         contenedorOcp.style.setProperty('display', 'none', 'important'); inputOcp.value = ''; inputOcp.required = false;
@@ -908,6 +968,116 @@ Elige la colonia del catálogo que sea más parecida o cercana geográficamente 
             elemento.style.backgroundColor = '#ECFDF5';
             setTimeout(() => { elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; }, 1800);
         }
+
+        // ============================================================================
+        // WIZARD DE CAPTURA — navegación por pasos.
+        // NO cambia los "name" de los campos ni el POST: el backend recibe lo mismo.
+        // ============================================================================
+        document.addEventListener("DOMContentLoaded", () => {
+            const pasos = Array.from(document.querySelectorAll('.wizard-paso'));
+            const indicadores = Array.from(document.querySelectorAll('.wz-paso'));
+            const btnAtras = document.getElementById('wz-atras');
+            const btnSiguiente = document.getElementById('wz-siguiente');
+            const btnEnviar = document.getElementById('wz-enviar');
+            let pasoActual = 1;
+
+            function irAPaso(n) {
+                pasoActual = n;
+                pasos.forEach(p => p.classList.toggle('activo', Number(p.dataset.paso) === n));
+                indicadores.forEach(i => {
+                    const idx = Number(i.dataset.wz);
+                    i.classList.toggle('activo', idx === n);
+                    i.classList.toggle('completado', idx < n);
+                });
+                btnAtras.style.visibility = n === 1 ? 'hidden' : 'visible';
+                btnSiguiente.style.display = n === 4 ? 'none' : 'inline-flex';
+                btnEnviar.style.display = n === 4 ? 'inline-flex' : 'none';
+                if (n === 4) construirResumen();
+            }
+
+            function valor(nombre) {
+                const el = document.querySelector(`[name="${nombre}"]`);
+                return el ? el.value.trim() : '';
+            }
+            function textoSelect(nombre) {
+                const el = document.querySelector(`select[name="${nombre}"]`);
+                return el && el.selectedIndex > 0 ? el.options[el.selectedIndex].text.trim() : '';
+            }
+
+            function validarPaso(n) {
+                if (n === 1 && (!valor('nombre') || !valor('apellido_paterno'))) {
+                    alert('Captura al menos el Nombre y el Apellido Paterno del solicitante.');
+                    return false;
+                }
+                if (n === 2 && !valor('asunto')) {
+                    alert('Escribe el Asunto de la petición.');
+                    return false;
+                }
+                if (n === 3) {
+                    if (!valor('direccion')) {
+                        alert('Selecciona la Dependencia principal que atenderá el caso.');
+                        return false;
+                    }
+                    if (!valor('colonia')) {
+                        alert('Selecciona la ubicación de la afectación en el mapa (búscala o mueve el pin) para asignar la colonia.');
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            function construirResumen() {
+                const apoyoSelect = document.querySelector('select[name="direcciones_apoyo"]');
+                const apoyo = apoyoSelect ? Array.from(apoyoSelect.selectedOptions).map(o => o.text).join(', ') : '';
+                const filas = [
+                    ['Ciudadano', [valor('nombre'), valor('apellido_paterno'), valor('apellido_materno')].filter(Boolean).join(' ') || '—'],
+                    ['Teléfono', valor('telefono') || '—'],
+                    ['Correo', valor('email') || '—'],
+                    ['Asunto', valor('asunto') || '—'],
+                    ['Notas', valor('notas') || '—'],
+                    ['Colonia de la afectación', textoSelect('colonia') || '—'],
+                    ['Calle', [valor('calle'), valor('numero_exterior') ? 'No. ' + valor('numero_exterior') : '', valor('numero_interior') ? 'Int. ' + valor('numero_interior') : ''].filter(Boolean).join(' ') || '—'],
+                    ['Coordenadas', (valor('latitud') && valor('longitud')) ? valor('latitud') + ', ' + valor('longitud') : '—'],
+                    ['Dirección principal', textoSelect('direccion') || '—'],
+                    ['Direcciones de apoyo', apoyo || 'Ninguna'],
+                    ['Vía de entrada', textoSelect('via_entrada') || 'Ciudadano'],
+                    ['Número de OCP', valor('numero_ocp') || 'N/A'],
+                    ['Gestor', valor('gestor') || 'Ciudadano Directo']
+                ];
+                document.getElementById('resumen-ticket').innerHTML = filas.map(f =>
+                    `<div style="display:flex; justify-content:space-between; gap:14px; border-bottom:1px dashed #E2E8F0; padding:6px 0;"><span style="color:var(--text-muted); font-weight:700; font-size:0.72rem; text-transform:uppercase;">${f[0]}</span><span style="font-weight:600; text-align:right;">${f[1]}</span></div>`
+                ).join('');
+            }
+
+            if (btnSiguiente) btnSiguiente.addEventListener('click', () => {
+                if (!validarPaso(pasoActual)) return;
+                if (pasoActual < 4) irAPaso(pasoActual + 1);
+            });
+            if (btnAtras) btnAtras.addEventListener('click', () => { if (pasoActual > 1) irAPaso(pasoActual - 1); });
+
+            // Toggle: ¿el ciudadano vive en otra dirección? (bloque opcional)
+            const chkOtra = document.getElementById('chk_otra_direccion');
+            const bloqueCiu = document.getElementById('bloque-direccion-ciudadano');
+            if (chkOtra && bloqueCiu) {
+                chkOtra.addEventListener('change', function() {
+                    bloqueCiu.style.display = this.checked ? 'grid' : 'none';
+                    if (!this.checked) {
+                        const chkMisma = document.getElementById('chk_misma_direccion');
+                        if (chkMisma) chkMisma.checked = false;
+                    }
+                });
+            }
+
+            // Al enviar: se quita "required" de todos los controles para que el navegador
+            // no bloquee el submit por campos de pasos ya validados. Django valifica en
+            // el servidor igual que antes.
+            const formTicket = document.getElementById('form-ticket');
+            if (formTicket) {
+                formTicket.addEventListener('submit', function() {
+                    formTicket.querySelectorAll('input, select, textarea').forEach(el => el.required = false);
+                });
+            }
+        });
     </script>
     
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCfNfcBFEt8xYdFW4qO-IAT9yJja0oriqo&libraries=places&v=weekly&callback=initGoogleSearch"></script>
