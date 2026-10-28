@@ -12,6 +12,7 @@ from .models import *
 from .forms import TicketForm
 import json
 import os
+import unicodedata
 from groq import Groq
 
 
@@ -442,8 +443,19 @@ def panel_agente(request):
         area_usuario = None
         es_especial = False
 
-    usuarios_omnipotentes = ['dir_servicios_publicos', 'sub_servicios_publicos', 'coord_servicios_publicos']
-    es_omnipotente = usuario_actual.username in usuarios_omnipotentes
+    # 🏤 REGLA DE VISIBILIDAD: La Dirección de Servicios Públicos (id=12) es la única
+    # donde los 3 niveles jerárquicos (Director, Subdirector, Coordinador) ven TODOS
+    # los tickets de su área. El resto de direcciones: el Director ve su área completa
+    # y el Subdirector/Coordinador solo los tickets asignados personalmente a él.
+    # Antes esto dependía de usernames exactos y se rompía si la cuenta cambiaba de nombre.
+    DIRECCION_ACCESO_TOTAL_ID = 12  # Servicios Públicos
+    es_omnipotente = False
+    if area_usuario:
+        # Doble comprobación: por id (12) o por nombre normalizado (sin acentos),
+        # por si el id cambia entre la base de datos local y la de producción.
+        nombre_area = area_usuario.nombre_direccion or ''
+        nombre_normalizado = unicodedata.normalize('NFKD', nombre_area).encode('ascii', 'ignore').decode().lower()
+        es_omnipotente = (area_usuario.id == DIRECCION_ACCESO_TOTAL_ID) or ('servicios publicos' in nombre_normalizado)
 
     if request.method == 'POST':
         folio_ticket = request.POST.get('folio_ticket')
