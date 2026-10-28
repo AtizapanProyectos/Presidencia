@@ -489,9 +489,13 @@ def panel_agente(request):
                     Q(subdirector_asignado=usuario_actual) |
                     Q(coordinador_asignado=usuario_actual)
                 )
-                # Multi-dirección: también opera los tickets de su área participante
+                # Multi-dirección: también opera los tickets de su área como APOYO
+                # (es_principal=False, para no romper la regla "solo asignados a él")
                 if area_usuario:
-                    condiciones |= Q(direcciones_participantes__direccion=area_usuario)
+                    condiciones |= Q(
+                        direcciones_participantes__direccion=area_usuario,
+                        direcciones_participantes__es_principal=False
+                    )
                 ticket = TicketAyuda.objects.filter(Q(folio=folio_ticket) & condiciones).distinct().get()
 
             if rol_usuario == 'Director' and not ticket.director_asignado:
@@ -642,9 +646,16 @@ def panel_agente(request):
         Q(subdirector_asignado=usuario_actual) |
         Q(coordinador_asignado=usuario_actual)
     )
-    # Multi-dirección: también ve y opera los tickets donde su área es participante
+    # Multi-dirección: también ve los tickets donde su área participa como APOYO.
+    # ⚠️ Solo participación de apoyo (es_principal=False): la señal post_save registra
+    # la dirección PRINCIPAL como participante y, si la incluyéramos, cada
+    # subdirector/coordinador vería TODOS los tickets de su área, rompiendo la regla
+    # "solo asignados a él" (ej. el ticket #1039 lo veía el sub de otra área del mismo área padre).
     if area_usuario:
-        filtro_asignaciones |= Q(direcciones_participantes__direccion=area_usuario)
+        filtro_asignaciones |= Q(
+            direcciones_participantes__direccion=area_usuario,
+            direcciones_participantes__es_principal=False
+        )
 
     if es_omnipotente and area_usuario:
         mis_tickets = TicketAyuda.objects.select_related(
